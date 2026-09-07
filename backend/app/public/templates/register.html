@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Create your account · CricNetra</title>
+  <meta name="theme-color" content="#080b0a" />
+  <link rel="icon" href="/icon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/auth.css?v=13" />
+  <script>(function(){try{var t=localStorage.getItem('cn_theme');var L=['light','daylight','sandstone','mint','blossom','emerald_light','rose','slate','sand','lavender','sky','sunset'];if(L.indexOf(t)>=0)document.documentElement.classList.add('theme-light');}catch(e){}})();</script>
+</head>
+<body>
+  <button class="auth-theme" id="themeToggle" type="button" aria-label="Toggle light/dark theme" title="Toggle theme"></button>
+  <main class="auth-split">
+    <section class="auth-left">
+      <a class="auth-brand" href="/">
+        <span class="ab-top"><img class="auth-logo" src="/icon.svg?v=89" alt=""> <span class="ab-word">Cric<b>Netra</b></span></span>
+        <span class="brand-line"></span>
+        <span class="ab-sub">Live cricket scoring · ball by ball</span>
+      </a>
+      <div class="auth-form">
+        <h1>Create your account</h1>
+        <p class="auth-sub">Join CricNetra — it's free.</p>
+        <div class="auth-msg" id="authMsg"></div>
+        <form id="registerForm">
+          <label for="full_name">Full name</label>
+          <input id="full_name" autocomplete="name" placeholder="e.g. Rohit Sharma" required />
+          <div class="auth-row">
+            <div>
+              <label for="username">Username</label>
+              <input id="username" autocomplete="username" autocapitalize="off" placeholder="rohit45" required />
+            </div>
+            <div>
+              <label for="mobile_no">Mobile number</label>
+              <input id="mobile_no" inputmode="numeric" autocomplete="tel" placeholder="9876543210" required />
+            </div>
+          </div>
+          <label for="email">Email <span class="auth-hint">(for your verification code)</span></label>
+          <input id="email" type="email" autocomplete="email" placeholder="you@example.com" required />
+          <label for="password">Password</label>
+          <div class="pw-wrap">
+            <input id="password" type="password" autocomplete="new-password" placeholder="At least 6 characters" required />
+            <button class="pw-toggle" type="button" aria-label="Show password">Show</button>
+          </div>
+          <label for="role">I am a…</label>
+          <select id="role">
+            <optgroup label="Instant access">
+              <option value="general_user">General user</option>
+              <option value="player">Player</option>
+            </optgroup>
+            <optgroup label="Needs admin approval">
+              <option value="team_owner">Team owner</option>
+              <option value="organizer">Organizer</option>
+              <option value="umpire">Umpire</option>
+              <option value="commentator">Commentator</option>
+            </optgroup>
+          </select>
+          <p class="auth-note" id="roleNote" hidden>This role is granted after an admin approves your request — you'll start as a general user.</p>
+          <button class="auth-btn" type="submit">Create account →</button>
+        </form>
+        <a class="auth-guest" href="/app">Continue as guest</a>
+        <p class="auth-alt">Already have an account? <a href="/login">Sign in</a></p>
+      </div>
+      <p class="auth-terms">By continuing, you agree to our <a href="/contact">Terms of Service</a> and <a href="/contact">Privacy Policy</a>.</p>
+    </section>
+
+    <aside class="auth-right">
+      <div class="auth-hero">
+        <div class="auth-hero-brand">
+          <span class="ahb-top"><img class="auth-hero-logo" src="/icon.svg?v=89" alt=""> <span class="ahb-word">Cric<b>Netra</b></span></span>
+          <span class="brand-line"></span>
+          <small>Live cricket scoring · ball by ball</small>
+        </div>
+        <h2 class="auth-hero-h">JOIN THE<br /><span>CRICKET NETWORK</span></h2>
+        <p class="auth-hero-p">Score your matches, run tournaments, and build your cricket records — all in one place.</p>
+        <div class="device-wrap">
+          <div class="device">
+            <div class="dv-float f1"><span class="emo">🏆</span><span>MVP<small>Blasters 10 · 40 pts</small></span></div>
+            <div class="dv-float f2"><span class="emo">📈</span><span>CRR 13.6<small>RRR —</small></span></div>
+            <div class="device-screen">
+              <div class="dv-top">
+                <div class="dv-row"><span class="dv-team">Strikers</span><span class="dv-score">77/5</span></div>
+                <div class="dv-meta"><span>vs Blasters</span><span>5.4 ov</span></div>
+              </div>
+              <div class="dv-body">
+                <div class="dv-card">
+                  <h4>Batting</h4>
+                  <div class="dv-line"><span class="on">Strikers 7 ★</span><b>6 (2)</b></div>
+                  <div class="dv-line"><span>Strikers 6</span><b>8 (6)</b></div>
+                </div>
+                <div class="dv-card">
+                  <h4>Bowling</h4>
+                  <div class="dv-line"><span>Blasters 1</span><b>1/22 (1.4)</b></div>
+                </div>
+                <div class="dv-card">
+                  <h4>This over</h4>
+                  <div class="dv-chips">
+                    <span class="dv-chip">·</span><span class="dv-chip">1</span>
+                    <span class="dv-chip">2</span><span class="dv-chip r4">4</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+  <script src="/auth.js?v=6"></script>
+  <script>
+    (function () {
+      var SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.4 1.4M17.6 17.6L19 19M19 5l-1.4 1.4M6.4 17.6L5 19"/></svg>';
+      var MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+      var tt = document.getElementById('themeToggle');
+      function paintTT() { if (tt) tt.innerHTML = document.documentElement.classList.contains('theme-light') ? MOON : SUN; }
+      if (tt) tt.addEventListener('click', function () {
+        var light = document.documentElement.classList.toggle('theme-light');
+        try { localStorage.setItem('cn_theme', light ? 'light' : 'dark'); } catch (e) {}
+        paintTT();
+      });
+      paintTT();
+      // show/hide password
+      document.querySelectorAll('.pw-toggle').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var inp = b.parentElement.querySelector('input');
+          if (!inp) return;
+          var show = inp.type === 'password';
+          inp.type = show ? 'text' : 'password';
+          b.textContent = show ? 'Hide' : 'Show';
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

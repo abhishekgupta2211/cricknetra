@@ -1,0 +1,13 @@
+# CricNetra reverse proxy — automatic HTTPS via Let's Encrypt.
+# DOMAIN and LETSENCRYPT_EMAIL are injected from .env by docker-compose.prod.yml.
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy app:8000
+	tls {$LETSENCRYPT_EMAIL}
+
+	# Long-lived connection for the live-scoring SSE stream (no buffering).
+	@sse path /api/v1/matches/*/stream
+	reverse_proxy @sse app:8000 {
+		flush_interval -1
+	}
+}

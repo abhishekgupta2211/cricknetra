@@ -1,0 +1,137 @@
+{% extends "site_base.html" %}
+{% block title %}Cricket tools & calculators — CricNetra{% endblock %}
+{% block desc %}Free cricket tools — run rate, required rate, strike rate, economy and NRR calculators, an online toss and a picker wheel. Everything to plan and run your game.{% endblock %}
+
+{% block body %}
+  <section class="page-head">
+    <div class="container">
+      <span class="hero-badge"><span class="dot"></span> Free cricket tools</span>
+      <h1>Cricket tools &amp; calculators</h1>
+      <p>Everything you need to plan, play and run your cricket game — all in one place.</p>
+    </div>
+  </section>
+
+  <!-- CALCULATORS -->
+  <section class="section">
+    <div class="container">
+      <div class="sec-head" style="margin-bottom:34px">
+        <span class="eyebrow">Calculators</span>
+        <h2>Every cricket calculator you need</h2>
+        <p>Overs use the <b>overs.balls</b> format — e.g. <code>12.3</code> means 12 overs and 3 balls.</p>
+      </div>
+
+      <div class="tools-grid">
+        <div class="tool-calc">
+          <div class="tc-ic">📈</div>
+          <h3>Run rate (CRR)</h3>
+          <p class="tc-desc">Runs scored per over so far.</p>
+          <div class="calc-fields">
+            <label>Runs<input id="rr-runs" type="number" min="0" inputmode="numeric" placeholder="0" /></label>
+            <label>Overs<input id="rr-overs" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0.0" /></label>
+          </div>
+          <div class="calc-out">Current run rate <b id="rr-out">—</b></div>
+        </div>
+
+        <div class="tool-calc">
+          <div class="tc-ic">🎯</div>
+          <h3>Required run rate</h3>
+          <p class="tc-desc">The rate the chasing side needs.</p>
+          <div class="calc-fields calc-3">
+            <label>Target<input id="rrr-target" type="number" min="1" inputmode="numeric" placeholder="0" /></label>
+            <label>Score<input id="rrr-score" type="number" min="0" inputmode="numeric" placeholder="0" /></label>
+            <label>Overs left<input id="rrr-overs" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0.0" /></label>
+          </div>
+          <div class="calc-out">RRR <b id="rrr-out">—</b><span class="calc-sub" id="rrr-note"></span></div>
+        </div>
+
+        <div class="tool-calc">
+          <div class="tc-ic">🏏</div>
+          <h3>Strike rate</h3>
+          <p class="tc-desc">Batting strike rate (runs per 100 balls).</p>
+          <div class="calc-fields">
+            <label>Runs<input id="sr-runs" type="number" min="0" inputmode="numeric" placeholder="0" /></label>
+            <label>Balls<input id="sr-balls" type="number" min="0" inputmode="numeric" placeholder="0" /></label>
+          </div>
+          <div class="calc-out">Strike rate <b id="sr-out">—</b></div>
+        </div>
+
+        <div class="tool-calc">
+          <div class="tc-ic">🧮</div>
+          <h3>Economy rate</h3>
+          <p class="tc-desc">Runs a bowler concedes per over.</p>
+          <div class="calc-fields">
+            <label>Runs<input id="eco-runs" type="number" min="0" inputmode="numeric" placeholder="0" /></label>
+            <label>Overs<input id="eco-overs" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0.0" /></label>
+          </div>
+          <div class="calc-out">Economy <b id="eco-out">—</b></div>
+        </div>
+
+        <div class="tool-calc tool-calc--wide">
+          <div class="tc-ic">⚖️</div>
+          <h3>Net run rate (NRR)</h3>
+          <p class="tc-desc">Runs scored per over minus runs conceded per over.</p>
+          <div class="calc-fields calc-4">
+            <label>Runs for<input id="nrr-rf" type="number" min="0" inputmode="numeric" placeholder="0" /></label>
+            <label>Overs for<input id="nrr-of" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0.0" /></label>
+            <label>Runs against<input id="nrr-ra" type="number" min="0" inputmode="numeric" placeholder="0" /></label>
+            <label>Overs against<input id="nrr-oa" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0.0" /></label>
+          </div>
+          <div class="calc-out">NRR <b id="nrr-out">—</b></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TOSS -->
+  <section class="section toss-section" id="toss">
+    <div class="container">
+      <div class="sec-head">
+        <span class="eyebrow">Match day</span>
+        <h2>Online toss</h2>
+        <p>No coin handy? Flip a fair virtual one to decide who bats or bowls.</p>
+      </div>
+      <div class="toss-stage">
+        <div class="coin" id="coin">
+          <div class="coin-face coin-heads">Heads</div>
+          <div class="coin-face coin-tails">Tails</div>
+        </div>
+        <button class="btn btn-primary btn-lg" id="tossBtn">Flip the coin</button>
+        <div class="toss-result" id="tossResult">Press flip to toss</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PICKER WHEEL -->
+  <section class="section wheel-section" id="wheel">
+    <div class="container">
+      <div class="sec-head">
+        <span class="eyebrow">Random</span>
+        <h2>Picker wheel</h2>
+        <p>Spin to pick teams, the batting order, an opener or the man of the match — quick, fair and fully random.</p>
+      </div>
+      <div class="wheel-layout">
+        <div class="wheel-stage">
+          <div class="wheel-pointer"></div>
+          <canvas id="wheelCanvas" width="300" height="300"></canvas>
+          <button class="btn btn-primary btn-lg" id="spinBtn">Spin</button>
+          <div class="wheel-result" id="wheelResult">Add options, then spin</div>
+        </div>
+        <div class="wheel-input">
+          <label class="wheel-label">Options — one per line</label>
+          <textarea id="wheelOptions" rows="7">Royal Strikers
+Thunder XI
+Desert Cobras
+Coastal Titans
+Metro Mavericks
+Jungle Kings</textarea>
+          <button class="btn btn-ghost" id="wheelUpdate">Update wheel</button>
+          <p class="wheel-hint">Tip: paste your squad to pick a captain or batting order.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}
+
+{% block scripts %}
+<script src="/tools.js"></script>
+{% endblock %}

@@ -1,0 +1,1038 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CricNetra — Live Overlay</title>
+  <meta name="robots" content="noindex">
+  <style>{% raw %}
+    /* =========================================================================
+       CricNetra broadcast overlay — transparent, self-contained (OBS/vMix/Streamlabs).
+       Authored at 1920×1080; 1rem = 0.833vw so it scales with any 16:9 canvas.
+       ========================================================================= */
+    :root{
+      --green:#0c9b54; --green-2:#13c46e; --gold:#f5c518;
+      --ink:#ffffff; --muted:rgba(255,255,255,.62);
+      --panel:rgba(17,22,20,.84); --panel-2:rgba(9,13,11,.9);
+      --line:rgba(255,255,255,.13); --line-2:rgba(255,255,255,.07);
+      --wkt:#e23b3b; --four:#2f8fe0; --six:#a855f7; --run:#2fae68;
+      --dot:rgba(255,255,255,.26); --extra:#e0a52f;
+      --shadow:0 .5rem 1.6rem rgba(0,0,0,.42);
+      font-size:clamp(8px,0.833vw,22px);
+    }
+    body.light{
+      --ink:#0f1d16; --muted:#5b6b62;
+      --panel:rgba(255,255,255,.92); --panel-2:rgba(255,255,255,.97);
+      --line:rgba(0,0,0,.10); --line-2:rgba(0,0,0,.05);
+      --dot:rgba(0,0,0,.22);
+      --shadow:0 .5rem 1.4rem rgba(0,0,0,.22);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{background:transparent!important;width:100%;height:100%;overflow:hidden}
+    body{
+      font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+      color:var(--ink);-webkit-font-smoothing:antialiased;
+      font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;
+    }
+    b,strong{font-weight:800}
+    .num{font-variant-numeric:tabular-nums}
+    .glass{background:var(--panel);backdrop-filter:blur(14px) saturate(140%);
+      -webkit-backdrop-filter:blur(14px) saturate(140%);
+      border:1px solid var(--line);border-radius:.85rem;box-shadow:var(--shadow)}
+
+    /* ── watermark ── */
+    .wm{position:fixed;top:1.5rem;left:1.9rem;font-size:1.35rem;font-weight:800;
+      letter-spacing:.16em;color:var(--ink);opacity:.9;text-shadow:0 .1rem .5rem rgba(0,0,0,.5)}
+    .wm span{color:var(--green-2)}
+    body.light .wm{text-shadow:none}
+
+    /* ── match info (tournament / venue / toss) top-left ── */
+    .matchinfo{position:fixed;top:4.3rem;left:1.9rem;max-width:24rem;
+      background:var(--panel);backdrop-filter:blur(12px) saturate(140%);border:1px solid var(--line);
+      border-left:.2rem solid var(--green);border-radius:.6rem;padding:.55rem .85rem;box-shadow:var(--shadow)}
+    body.compact .matchinfo{display:none!important}
+    .mi-tour{font-size:.92rem;font-weight:800;letter-spacing:.01em;color:var(--ink)}
+    .mi-tour span{color:var(--muted);font-weight:700;font-size:.8rem}
+    .mi-row{font-size:.78rem;color:var(--muted);font-weight:600;margin-top:.22rem}
+    .mi-row i{font-style:normal;font-weight:800;color:var(--green-2);text-transform:uppercase;
+      font-size:.6rem;letter-spacing:.09em;margin-right:.4rem}
+
+    /* ── top-right: format + status + phase ── */
+    .topright{position:fixed;top:1.35rem;right:1.9rem;display:flex;flex-direction:column;
+      align-items:flex-end;gap:.55rem}
+    .fmt{display:flex;align-items:center;gap:.6rem}
+    .status{font-size:.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+      padding:.28rem .7rem;border-radius:.5rem;display:inline-flex;align-items:center;gap:.4rem}
+    .status.live{background:rgba(226,59,59,.16);color:#ff6b6b}
+    .status.live::before{content:"";width:.5rem;height:.5rem;border-radius:50%;background:#ff5252;
+      box-shadow:0 0 .5rem #ff5252;animation:pulse 1.1s infinite}
+    .status.done{background:rgba(12,155,84,.18);color:var(--green-2)}
+    .fmt-txt{font-size:.82rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+      color:var(--ink);background:var(--panel-2);border:1px solid var(--line);
+      padding:.3rem .7rem;border-radius:.5rem;backdrop-filter:blur(10px)}
+    .phase{display:flex;gap:.35rem}
+    .pill{font-size:.66rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+      padding:.28rem .62rem;border-radius:.45rem;color:var(--muted);
+      background:var(--panel-2);border:1px solid var(--line-2);backdrop-filter:blur(10px)}
+    .pill.on{color:#04140c;background:var(--green);border-color:var(--green);
+      box-shadow:0 .2rem .7rem rgba(12,155,84,.45)}
+    body.light .pill.on{color:#fff}
+
+    /* ── bottom dock ── */
+    .dock{position:fixed;left:1.9rem;right:1.9rem;bottom:2.9rem;
+      display:flex;flex-direction:column;gap:.85rem;animation:riseIn .5s ease both}
+    body.compact .dock{bottom:2rem}
+
+    .cards{display:flex;justify-content:space-between;align-items:flex-end;gap:1rem}
+    body.compact .cards{display:none}
+    .col-left{display:flex;flex-direction:column;gap:.55rem;align-items:flex-start}
+    .col-right{display:flex;flex-direction:column;gap:.55rem;align-items:flex-end}
+
+    /* batter cards */
+    .bat-cards{display:flex;gap:.7rem}
+    .bat{display:flex;align-items:center;gap:.65rem;min-width:13.5rem;padding:.6rem .85rem;border-radius:.8rem;
+      background:var(--panel);backdrop-filter:blur(14px) saturate(140%);border:1px solid var(--line);
+      box-shadow:var(--shadow);border-left:.22rem solid var(--line)}
+    .bat-txt{min-width:0}
+    .bat.on{border-left-color:var(--green);background:var(--panel-2)}
+    .bn{display:flex;align-items:center;gap:.4rem;font-size:1.02rem;font-weight:800;
+      letter-spacing:.01em;line-height:1.1;white-space:nowrap}
+    .bat .star{color:var(--green-2);font-size:.7rem;animation:pulse 1.1s infinite}
+    .br{font-size:1.5rem;font-weight:800;line-height:1.15;margin-top:.05rem}
+    .br span{font-size:.9rem;font-weight:700;color:var(--muted);margin-left:.15rem}
+    .bx{font-size:.72rem;color:var(--muted);font-weight:700;letter-spacing:.02em;margin-top:.05rem}
+
+    /* live partnership widget (same glass style as the other cards) */
+    .pnr{display:flex;flex-direction:column;gap:.12rem;min-width:13.5rem;padding:.55rem .8rem;border-radius:.8rem;
+      background:var(--panel);border:1px solid var(--line);box-shadow:var(--shadow);
+      backdrop-filter:blur(14px) saturate(140%);border-left:.22rem solid var(--green)}
+    .pnr-h{font-size:.62rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--green-2);margin-bottom:.15rem}
+    .pnr-b{display:flex;justify-content:space-between;gap:1rem;font-size:.84rem;line-height:1.3}
+    .pnr-b span{color:var(--ink);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .pnr-b b{color:var(--muted);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+    .pnr-tot{font-size:.72rem;color:var(--muted);font-weight:700;margin-top:.22rem;padding-top:.22rem;border-top:1px solid var(--line-2)}
+    .pnr-tot b{color:var(--green-2);font-size:.86rem}
+    .pnr-in{animation:pnrIn .38s cubic-bezier(.16,1,.3,1) both}
+    .pnr-out{animation:pnrOut .35s ease forwards}
+    @keyframes pnrIn{from{opacity:0;transform:translateY(.8rem) scale(.95)}to{opacity:1;transform:none}}
+    @keyframes pnrOut{to{opacity:0;transform:translateY(-.35rem) scale(.97)}}
+
+    /* recent balls */
+    .recent{display:flex;align-items:center;gap:.4rem;padding:.42rem .6rem;border-radius:.75rem;
+      background:var(--panel-2);border:1px solid var(--line);box-shadow:var(--shadow);
+      backdrop-filter:blur(12px)}
+    .rc-lbl{font-size:.6rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+      color:var(--muted);margin-right:.15rem}
+    .rc{width:1.9rem;height:1.9rem;border-radius:50%;display:grid;place-items:center;
+      font-size:.86rem;font-weight:800;color:#fff;flex:0 0 auto}
+    .rc.dot{background:var(--dot);color:var(--ink)}
+    .rc.run{background:var(--run)}
+    .rc.four{background:var(--four)}
+    .rc.six{background:var(--six)}
+    .rc.wkt{background:var(--wkt)}
+    .rc.extra{background:var(--extra);font-size:.66rem}
+    .rc.newball{animation:popIn .45s cubic-bezier(.2,1.3,.4,1) both}
+
+    /* bowler card */
+    .bowl-card{min-width:13rem;padding:.55rem .85rem;border-radius:.8rem;text-align:right;
+      background:var(--panel);backdrop-filter:blur(14px) saturate(140%);
+      border:1px solid var(--line);box-shadow:var(--shadow);border-right:.22rem solid var(--green)}
+    .bwl-h{font-size:.6rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+    .bwl-n{font-size:1.02rem;font-weight:800;line-height:1.15}
+    .bwl-fig{font-size:1.25rem;font-weight:800;letter-spacing:.02em}
+    .bwl-eco{font-size:.72rem;color:var(--muted);font-weight:700}
+
+    /* ── main bar (hero scoreboard) ── */
+    .main-bar{display:flex;align-items:stretch;gap:0;border-radius:.95rem;overflow:hidden;
+      background:var(--panel);backdrop-filter:blur(16px) saturate(150%);
+      border:1px solid var(--line);box-shadow:var(--shadow)}
+    .mb-team{display:flex;align-items:center;gap:.9rem;padding:.7rem 1.1rem;
+      background:linear-gradient(100deg,rgba(12,155,84,.22),transparent 90%);position:relative}
+    .mb-team::after{content:"";position:absolute;left:0;top:0;bottom:0;width:.28rem;background:var(--green)}
+    .mono{position:relative;overflow:hidden;width:3.6rem;height:3.6rem;border-radius:.7rem;display:grid;place-items:center;
+      font-size:1.3rem;font-weight:800;letter-spacing:.02em;color:#04140c;
+      background:linear-gradient(150deg,var(--green-2),var(--green));box-shadow:0 .25rem .7rem rgba(12,155,84,.4)}
+    .mono span{position:relative;z-index:0}
+    .mono img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;z-index:1;background:#fff}
+    /* round photo avatars (batters + MoM) — image covers initials, removed on error */
+    .av{position:relative;overflow:hidden;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;
+      color:#04140c;font-weight:800;background:linear-gradient(150deg,var(--green-2),var(--green))}
+    body.light .av{color:#fff}
+    .av span{position:relative;z-index:0}
+    .av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
+    .av.bat-av{width:2.6rem;height:2.6rem;font-size:.84rem}
+    body.light .mono{color:#fff}
+    .mb-txt{display:flex;flex-direction:column;justify-content:center;gap:.05rem}
+    .mb-name{display:flex;align-items:center;gap:.5rem;font-size:1.02rem;font-weight:800;
+      letter-spacing:.06em;text-transform:uppercase;color:var(--ink)}
+    .batting-dot{width:.5rem;height:.5rem;border-radius:50%;background:var(--green-2);
+      box-shadow:0 0 .5rem var(--green-2);animation:pulse 1.3s infinite}
+    .mb-score{font-size:2.9rem;font-weight:800;line-height:1;letter-spacing:-.02em}
+    .mb-score .wk{font-size:1.7rem;color:var(--muted);font-weight:800}
+    .mb-score .ov{font-size:1.15rem;color:var(--muted);font-weight:700;margin-left:.55rem}
+    .fh{font-size:.62rem;font-weight:800;letter-spacing:.1em;color:#04140c;background:var(--gold);
+      padding:.15rem .5rem;border-radius:.35rem;margin-left:.4rem;vertical-align:middle}
+
+    .mb-metrics{display:flex;align-items:stretch;margin-left:auto}
+    .metric{display:flex;flex-direction:column;justify-content:center;align-items:center;
+      padding:.6rem 1.15rem;min-width:5rem;border-left:1px solid var(--line-2)}
+    .metric b{font-size:1.55rem;font-weight:800;line-height:1.1}
+    .metric i{font-size:.64rem;font-style:normal;font-weight:800;letter-spacing:.08em;
+      text-transform:uppercase;color:var(--muted);margin-top:.1rem}
+    .metric.hi b{color:var(--gold)}
+    .metric.wp b{color:var(--green-2)}
+    .result-band{display:flex;align-items:center;padding:.7rem 1.6rem;font-size:1.35rem;font-weight:800;
+      color:#04140c;background:linear-gradient(100deg,var(--green-2),var(--green));letter-spacing:.01em}
+    body.light .result-band{color:#fff}
+
+    /* ── ticker ── */
+    .ticker{position:fixed;left:0;right:0;bottom:0;height:2.15rem;overflow:hidden;
+      background:var(--panel-2);backdrop-filter:blur(12px);border-top:1px solid var(--line);
+      display:flex;align-items:center}
+    body.compact .ticker{display:none}
+    .ticker::before{content:"CRICNETRA LIVE";flex:0 0 auto;font-size:.68rem;font-weight:800;
+      letter-spacing:.12em;color:#04140c;background:var(--green);height:100%;display:flex;
+      align-items:center;padding:0 1rem}
+    body.light .ticker::before{color:#fff}
+    .ticker-track{display:inline-flex;align-items:center;gap:.9rem;white-space:nowrap;
+      padding-left:100%;animation:scroll 34s linear infinite}
+    .tk{font-size:.86rem;font-weight:600;color:var(--ink)}
+    .tk-sep{color:var(--green-2);font-weight:800}
+
+    /* ── FX layer (wicket / boundary / milestone) ── */
+    .fx{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;z-index:60;
+      padding-bottom:12vh}
+    .fx-card{text-align:center;animation:fxIn .5s cubic-bezier(.16,1,.3,1) both;position:relative;overflow:hidden}
+    .fx-card.out{animation:fxOut .45s ease forwards}
+    .fx-shine{position:absolute;top:0;left:0;height:100%;width:35%;pointer-events:none;
+      background:linear-gradient(100deg,transparent,rgba(255,255,255,.35),transparent);
+      transform:skewX(-18deg);animation:shine 1.1s ease .25s}
+
+    .fx-boundary{font-weight:800;letter-spacing:.02em;padding:1.1rem 2.8rem;border-radius:1.1rem;
+      box-shadow:0 1rem 3rem rgba(0,0,0,.5)}
+    .fx-boundary .big{font-size:5.5rem;line-height:.95;color:#fff;text-shadow:0 .3rem 1rem rgba(0,0,0,.4)}
+    .fx-boundary.four{background:linear-gradient(135deg,#3aa0f0,#1f6fc4)}
+    .fx-boundary.six{background:linear-gradient(135deg,#b06bff,#7a3ff0)}
+
+    .fx-wicket{background:linear-gradient(135deg,#f04747,#b21f1f);border-radius:1.1rem;
+      padding:1.2rem 3rem;box-shadow:0 1rem 3rem rgba(178,31,31,.5);color:#fff;min-width:34rem}
+    .fx-wicket .w-big{font-size:4.2rem;font-weight:800;letter-spacing:.04em;line-height:1}
+    .fx-wicket .w-name{font-size:1.7rem;font-weight:800;margin-top:.35rem}
+    .fx-wicket .w-sub{font-size:1rem;font-weight:600;opacity:.92;margin-top:.15rem}
+    .fx-wicket .w-score{font-size:1.05rem;font-weight:800;margin-top:.45rem;
+      display:inline-block;background:rgba(0,0,0,.22);padding:.25rem .8rem;border-radius:.5rem}
+
+    .fx-milestone{background:linear-gradient(135deg,#ffd84d,#e6a900);border-radius:1.1rem;
+      padding:1.15rem 2.8rem;box-shadow:0 1rem 3rem rgba(230,169,0,.5);color:#241a00;min-width:26rem}
+    .fx-milestone .m-big{font-size:3.6rem;font-weight:800;letter-spacing:.06em;line-height:1}
+    .fx-milestone .m-name{font-size:1.6rem;font-weight:800;margin-top:.3rem}
+    .fx-milestone .m-sub{font-size:1.05rem;font-weight:700;margin-top:.1rem;opacity:.85}
+
+    .fx-team{background:var(--panel);border:1px solid var(--line);border-radius:.9rem;
+      padding:.85rem 2rem;box-shadow:var(--shadow)}
+    .fx-team .t-big{font-size:2.4rem;font-weight:800;color:var(--gold)}
+    .fx-team .t-sub{font-size:.9rem;font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+
+    /* partnership milestone banner (scale 0.8 → overshoot 1.05 → 1.0, soft glow) */
+    .fx-pnr{position:relative;text-align:center;background:var(--panel);border:1px solid var(--line);
+      border-radius:1.2rem;padding:1.35rem 2.6rem;box-shadow:0 1rem 3rem rgba(0,0,0,.5);min-width:24rem;
+      animation:pmPop .55s cubic-bezier(.22,1.15,.36,1) both}
+    .fx-pnr .fx-glow{position:absolute;left:50%;top:40%;width:15rem;height:15rem;transform:translate(-50%,-50%);
+      background:radial-gradient(circle,rgba(245,197,24,.32),rgba(12,155,84,.12) 46%,transparent 70%);
+      filter:blur(6px);pointer-events:none;z-index:0;animation:glowPulse 2.4s ease-in-out infinite}
+    .fx-pnr > *{position:relative;z-index:1}
+    .pm-ico{font-size:1.7rem;line-height:1}
+    .pm-big{font-size:2.4rem;font-weight:800;letter-spacing:.01em;color:var(--gold);margin-top:.15rem}
+    .pm-names{font-size:1.2rem;font-weight:800;color:var(--ink);margin-top:.3rem}
+    .pm-sub{font-size:.98rem;font-weight:700;color:var(--muted);margin-top:.12rem}
+
+    /* powerplay summary card (auto, ~8s) */
+    .fx-summary{text-align:center;background:var(--panel);border:1px solid var(--line);border-top:.25rem solid var(--green);
+      border-radius:1.1rem;padding:1.15rem 2.4rem;box-shadow:0 1rem 3rem rgba(0,0,0,.5);min-width:25rem}
+    .su-h{font-size:.88rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--green-2)}
+    .su-score{font-size:2.9rem;font-weight:800;line-height:1;margin:.15rem 0 .65rem}
+    .su-grid{display:flex;justify-content:center;gap:1.7rem}
+    .su-tile{display:flex;flex-direction:column}
+    .su-tile b{font-size:1.5rem;font-weight:800;color:var(--gold)}
+    .su-tile i{font-size:.64rem;font-style:normal;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:.12rem}
+
+    /* DLS revised-target banner (auto, 8s then fades) */
+    .fx-dls{text-align:center;background:var(--panel);border:1px solid var(--line);border-top:.25rem solid var(--green);
+      border-radius:1.1rem;padding:1.15rem 2.8rem;box-shadow:0 1rem 3rem rgba(0,0,0,.5);min-width:20rem}
+    .dl-h{font-size:.82rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--green-2)}
+    .dl-sub{font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:.15rem}
+    .dl-t{font-size:3.6rem;font-weight:800;line-height:1;margin:.3rem 0 .1rem}
+    .dl-o{font-size:1rem;font-weight:800;color:var(--gold)}
+
+    /* innings break summary card */
+    .fx-break{background:var(--panel);border:1px solid var(--line);border-radius:1.2rem;padding:1.25rem 1.8rem;
+      box-shadow:0 1.2rem 3.5rem rgba(0,0,0,.55);min-width:30rem;max-width:38rem}
+    .br-h{font-size:.8rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--green-2);text-align:center}
+    .br-score{font-size:2.5rem;font-weight:800;text-align:center;line-height:1.05}
+    .br-rr{font-size:.88rem;font-weight:700;color:var(--muted);text-align:center;margin-bottom:.75rem}
+    .br-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.55rem}
+    .br-cell{background:var(--panel-2);border:1px solid var(--line-2);border-radius:.6rem;padding:.5rem .3rem;text-align:center}
+    .br-cell b{display:block;font-size:1.15rem;font-weight:800}
+    .br-cell i{font-size:.56rem;font-style:normal;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+    .br-lines{margin-top:.65rem;display:flex;flex-direction:column;gap:.22rem}
+    .br-line{display:flex;justify-content:space-between;gap:1rem;font-size:.82rem;font-weight:700}
+    .br-line span{color:var(--muted)}
+    .br-line b{color:var(--ink);text-align:right}
+
+    /* ── Player of the Match end-card ── */
+    .mom{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;z-index:55}
+    .mom-card{width:26rem;padding:2rem 2rem 1.5rem;border-radius:1.3rem;text-align:center;
+      background:var(--panel);backdrop-filter:blur(18px) saturate(150%);border:1px solid var(--line);
+      box-shadow:0 1.5rem 4rem rgba(0,0,0,.5);position:relative;overflow:hidden;
+      animation:fxIn .6s cubic-bezier(.16,1,.3,1) both}
+    .mom-card::before{content:"";position:absolute;inset:0;
+      background:radial-gradient(120% 80% at 50% 0%,rgba(12,155,84,.25),transparent 60%)}
+    .mom-h{position:relative;font-size:.82rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+    .av.mom-av{width:6rem;height:6rem;margin:1rem auto .8rem;font-size:2.2rem;
+      box-shadow:0 .4rem 1.2rem rgba(12,155,84,.5)}
+    .mom-impact{position:relative;font-size:1.05rem;font-weight:700;color:var(--muted);margin-top:.55rem;letter-spacing:.02em}
+    .mom-impact b{color:var(--gold);font-size:1.4rem;margin-left:.3rem}
+    .mom-name{position:relative;font-size:2rem;font-weight:800;line-height:1.1}
+    .mom-team{position:relative;font-size:.95rem;font-weight:700;color:var(--muted);margin-top:.15rem}
+    .mom-line{position:relative;font-size:1.15rem;font-weight:800;color:var(--green-2);margin-top:.7rem;
+      padding-top:.7rem;border-top:1px solid var(--line)}
+    .mom-brand{position:relative;font-size:.8rem;font-weight:800;letter-spacing:.16em;color:var(--muted);margin-top:.9rem}
+    .mom-brand span{color:var(--green-2)}
+
+    /* ── keyframes ── */
+    @keyframes riseIn{from{opacity:0;transform:translateY(1.2rem)}to{opacity:1;transform:none}}
+    @keyframes popIn{0%{opacity:0;transform:scale(.35)}60%{transform:scale(1.14)}100%{opacity:1;transform:scale(1)}}
+    @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.8)}}
+    @keyframes fxIn{0%{opacity:0;transform:translateY(1.8rem) scale(.92)}14%{opacity:1;transform:none}}
+    @keyframes fxOut{to{opacity:0;transform:translateY(-1rem) scale(.97)}}
+    @keyframes pmPop{0%{opacity:0;transform:scale(.8)}55%{opacity:1;transform:scale(1.05)}75%{transform:scale(1)}100%{transform:scale(1)}}
+    @keyframes glowPulse{0%,100%{opacity:.65}50%{opacity:1}}
+    @keyframes shine{from{transform:translateX(-160%) skewX(-18deg)}to{transform:translateX(360%) skewX(-18deg)}}
+    @keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+    /* ── broadcast controller: takeover stage + operator panel ── */
+    .bc-stage{position:fixed;inset:0;z-index:40;display:grid;place-items:center;padding:4vh 4vw;
+      opacity:0;pointer-events:none;transition:opacity .35s ease}
+    .bc-stage.show{opacity:1}
+    /* The analytics filter chips are interactive ONLY in the operator (?control=1) view —
+       a descendant re-enables pointer events even though .bc-stage is click-through, so the
+       plain OBS overlay stays pass-through while the operator can actually click the filters. */
+    body.bc-control .cn-an-filters{pointer-events:auto}
+    body.bc-control .cn-an-f{cursor:pointer}
+    /* LIVE scoreboard fade is done in JS (fadeLive) with !important opacity — a global
+       CSS transition here clashes with the dock's riseIn entrance animation. */
+    .bc-panel{width:100%;max-width:74rem;display:flex;flex-direction:column;align-items:center;gap:1rem}
+    .bc-panel.bc-in{animation:bcIn .38s cubic-bezier(.16,1,.3,1) both}
+    .bc-panel.bc-out{animation:bcOut .32s ease forwards;position:absolute}
+    @keyframes bcIn{from{opacity:0;transform:scale(.985);filter:blur(6px)}to{opacity:1;transform:none;filter:blur(0)}}
+    @keyframes bcOut{to{opacity:0;transform:scale(1.01);filter:blur(6px)}}
+    .bc-h{font-size:1.05rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--green-2)}
+    .bc-sub{font-size:.9rem;font-weight:700;color:var(--muted);margin-top:-.5rem}
+    .bc-card{width:100%;background:var(--panel);backdrop-filter:blur(16px) saturate(150%);
+      border:1px solid var(--line);border-radius:1.2rem;box-shadow:var(--shadow);padding:1.4rem 1.8rem}
+    .bc-worm svg{width:100%;height:auto;display:block}
+    .bc-worm .axis{stroke:var(--line);stroke-width:1}
+    .bc-worm .axis-txt{fill:var(--muted);font:700 13px system-ui}
+    .bc-worm .wline{fill:none;stroke:var(--green-2);stroke-width:4;stroke-linecap:round;stroke-linejoin:round;
+      transition:stroke-dashoffset 1.1s cubic-bezier(.22,1,.36,1)}
+    .bc-worm .warea{fill:var(--green-2);opacity:.14}
+    .bc-wagon-host{width:min(52vh,30rem)}
+    .bc-pitch-host{width:min(34vh,20rem)}
+    .bc-pnr-pair{display:grid;grid-template-columns:1fr auto 1fr;gap:1.4rem;align-items:center;width:100%}
+    .bc-bat{text-align:center;display:flex;flex-direction:column;align-items:center;gap:.5rem}
+    .bc-bat .nm{font-size:1.5rem;font-weight:800}
+    .bc-bat .rr{font-size:2.6rem;font-weight:800;color:var(--green-2);line-height:1}
+    .bc-bat .rr span{font-size:1.2rem;color:var(--muted);font-weight:700}
+    .bc-bat .sr{font-size:.85rem;color:var(--muted);font-weight:700}
+    .bc-pnr-mid{text-align:center}
+    .bc-pnr-mid .big{font-size:3.2rem;font-weight:800;line-height:1}
+    .bc-pnr-mid .lbl{font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--green-2)}
+    .bc-pnr-foot{margin-top:.6rem;font-size:1rem;font-weight:700;color:var(--muted);text-align:center}
+    .bc-av{width:6rem;height:6rem;border-radius:50%;overflow:hidden;position:relative;
+      background:linear-gradient(150deg,var(--green-2),var(--green));display:grid;place-items:center;
+      font-size:2rem;font-weight:800;color:#04140c}
+    body.light .bc-av{color:#fff}
+    .bc-av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+    .bc-sum-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;width:100%}
+    .bc-sum{background:var(--panel-2);border:1px solid var(--line);border-radius:.9rem;padding:1rem;text-align:center}
+    .bc-sum b{display:block;font-size:2.2rem;font-weight:800;color:var(--green-2)}
+    .bc-sum.gold b{color:var(--gold)}
+    .bc-sum i{font-size:.66rem;font-style:normal;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+    .bc-ctl[hidden]{display:none}   /* keep the operator panel out of OBS output on the plain URL */
+    .bc-ctl{position:fixed;left:50%;bottom:1.2rem;transform:translateX(-50%);z-index:120;
+      display:flex;flex-direction:column;align-items:center;gap:.5rem;background:rgba(10,14,12,.92);
+      border:1px solid var(--line);border-radius:.9rem;padding:.7rem .9rem;box-shadow:0 .6rem 2rem rgba(0,0,0,.5);backdrop-filter:blur(12px)}
+    .bc-ctl-row{display:flex;gap:.4rem;flex-wrap:wrap;justify-content:center}
+    .bc-ctl-row button{font:800 .72rem/1 system-ui;letter-spacing:.04em;padding:.5rem .7rem;border-radius:.5rem;
+      border:1px solid var(--line);background:rgba(255,255,255,.06);color:#fff;cursor:pointer;transition:background .12s}
+    .bc-ctl-row button:hover{background:rgba(255,255,255,.14)}
+    .bc-ctl-row button.on{background:var(--green);border-color:var(--green);color:#04140c}
+    .bc-ctl-row button kbd{opacity:.5;font-weight:800;margin-left:.3rem;font-family:inherit}
+    .bc-ctl-meta{display:flex;gap:1rem;align-items:center;font:700 .72rem system-ui;color:var(--muted)}
+    .bc-ctl-meta #bcCtlMode{color:var(--green-2);font-weight:800;letter-spacing:.08em}
+    .bc-auto{display:inline-flex;align-items:center;gap:.35rem;cursor:pointer;color:#fff}
+
+    @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important}}
+  {% endraw %}</style>
+</head>
+<body data-mid="{{ match_id }}">
+  <div class="wm">CRIC<span>NETRA</span></div>
+  <div class="matchinfo" id="matchinfo" style="display:none"></div>
+
+  <div class="topright">
+    <div class="fmt" id="fmt"></div>
+    <div class="phase" id="phase"></div>
+  </div>
+
+  <div class="dock" id="dock" style="display:none">
+    <div class="cards">
+      <div class="col-left">
+        <div class="bat-cards" id="batCards"></div>
+        <div class="pnr" id="pnr" style="display:none"></div>
+      </div>
+      <div class="col-right">
+        <div class="recent" id="recent" style="display:none"></div>
+        <div class="bowl-card" id="bowlCard" style="display:none"></div>
+      </div>
+    </div>
+    <div class="main-bar" id="mainBar">
+      <div class="mb-team" id="mbTeam"></div>
+      <div class="mb-metrics" id="mbMetrics"></div>
+    </div>
+  </div>
+
+  <div class="ticker" id="ticker" style="display:none"><div class="ticker-track" id="tickerTrack"></div></div>
+
+  <div class="fx" id="fx"></div>
+  <div class="mom" id="mom" style="display:none"></div>
+
+  <!-- broadcast takeover stage (worm / wagon / pitch / partnership / summary) -->
+  <div class="bc-stage" id="bcStage"></div>
+
+  <!-- operator control panel — only rendered with ?control=1, never in OBS output -->
+  <div class="bc-ctl" id="bcCtl" hidden>
+    <div class="bc-ctl-row" id="bcCtlBtns"></div>
+    <div class="bc-ctl-meta"><span id="bcCtlMode">LIVE</span><label class="bc-auto"><input type="checkbox" id="bcAuto"> Auto</label></div>
+  </div>
+
+  <script src="/js/analytics.js?v=2"></script>
+  <script>{% raw %}
+  (function () {
+    "use strict";
+    var MID = document.body.dataset.mid;
+    var Q = new URLSearchParams(location.search);
+    var CFG = {
+      theme:   Q.get("theme") === "light" ? "light" : "dark",
+      ticker:  Q.get("ticker") !== "0",
+      winprob: Q.get("winprob") !== "0",
+      compact: Q.get("compact") === "1",
+      accent:  Q.get("accent"),
+      poll:    Math.max(1000, parseInt(Q.get("poll") || "2500", 10) || 2500),
+    };
+    if (CFG.theme === "light") document.body.classList.add("light");
+    if (CFG.compact) document.body.classList.add("compact");
+    if (CFG.accent && /^[0-9a-fA-F]{6}$/.test(CFG.accent))
+      document.documentElement.style.setProperty("--green", "#" + CFG.accent);
+
+    var el = function (id) { return document.getElementById(id); };
+    var prev = null, momShown = false, lastTicker = "";
+    var fxQueue = [], fxBusy = false;
+    var pnrKey = null, pnrPending = false, pnrTimer = null;   // partnership widget state
+    var ppShown = false, breakShown = false, lastInnings = 0; // once-per-innings banners
+    var dlsSeq = 0;                                            // last DLS revision the banner showed
+
+    function esc(s) {
+      return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+      });
+    }
+    function rate(x) { return (x == null || isNaN(x)) ? "–" : Number(x).toFixed(2); }
+    function mono(name) {
+      name = (name || "").trim();
+      if (!name) return "?";
+      var w = name.split(/\s+/);
+      if (w.length === 1) return w[0].slice(0, 3).toUpperCase();
+      return w.map(function (x) { return x[0] || ""; }).join("").slice(0, 3).toUpperCase();
+    }
+    // logo/photo tiles: initials sit underneath; the image covers them when it loads
+    // and is removed on error (no photo uploaded) → graceful monogram fallback.
+    function teamTile(name, logo) {
+      return '<div class="mono"><span>' + esc(mono(name)) + "</span>" +
+        (logo ? '<img src="' + esc(logo) + '" alt="" onerror="this.remove()">' : "") + "</div>";
+    }
+    function avatar(name, photo, cls) {
+      return '<div class="av ' + (cls || "") + '"><span>' + esc(mono(name)) + "</span>" +
+        (photo ? '<img src="' + esc(photo) + '" alt="" onerror="this.remove()">' : "") + "</div>";
+    }
+
+    /* ---------- renderers ---------- */
+    function renderFmt(d) {
+      var s = d.complete ? "Result" : (d.status === "break" ? "Innings Break" : "Live");
+      var cls = d.complete ? "done" : "live";
+      el("fmt").innerHTML =
+        '<span class="status ' + cls + '">' + s + "</span>" +
+        (d.format ? '<span class="fmt-txt">' + esc(d.format) + "</span>" : "");
+    }
+    function renderMatchInfo(d) {
+      var box = el("matchinfo"), m = d.meta || {}, bits = [];
+      if (m.tournament)
+        bits.push('<div class="mi-tour">' + esc(m.tournament) +
+          (m.match_no ? ' <span>· ' + esc(m.match_no) + "</span>" : "") + "</div>");
+      else if (m.match_no)
+        bits.push('<div class="mi-tour">Match ' + esc(m.match_no) + "</div>");
+      if (m.venue) bits.push('<div class="mi-row"><i>Venue</i>' + esc(m.venue) + "</div>");
+      if (m.toss_text) bits.push('<div class="mi-row"><i>Toss</i>' + esc(m.toss_text) + "</div>");
+      if (!bits.length) { box.style.display = "none"; return; }
+      box.style.display = "";
+      box.innerHTML = bits.join("");
+    }
+    function renderPhase(d) {
+      var ph = (d.phase && d.phase.key) || "middle";
+      var names = { pp: "Powerplay", middle: "Middle", death: "Death" };
+      var keys = ["pp", "middle", "death"];
+      el("phase").innerHTML = keys.map(function (k) {
+        return '<span class="pill ' + (ph === k ? "on" : "") + '">' + names[k] + "</span>";
+      }).join("");
+    }
+    function renderMain(d) {
+      var chase = d.innings_no >= 2 && d.target != null && !d.complete;
+      var fh = d.free_hit ? '<span class="fh">FREE HIT</span>' : "";
+      el("mbTeam").innerHTML =
+        teamTile(d.batting, d.batting_logo) +
+        '<div class="mb-txt">' +
+          '<div class="mb-name">' + esc(d.batting) + '<span class="batting-dot"></span></div>' +
+          '<div class="mb-score"><b>' + d.runs + '</b><span class="wk">/' + d.wickets + "</span>" +
+            '<span class="ov">(' + esc(d.overs) + ")</span>" + fh + "</div>" +
+        "</div>";
+      var m = "";
+      if (d.complete && d.result) {
+        m = '<div class="result-band">' + esc(d.result) + "</div>";
+      } else {
+        m = '<div class="metric"><b>' + rate(d.crr) + "</b><i>CRR</i></div>";
+        if (chase) {
+          m += '<div class="metric"><b>' + d.target + "</b><i>Target</i></div>";
+          if (d.need != null && d.balls_left != null)
+            m += '<div class="metric hi"><b>' + d.need + "</b><i>need off " + d.balls_left + "</i></div>";
+          if (d.rrr != null) m += '<div class="metric"><b>' + rate(d.rrr) + "</b><i>RRR</i></div>";
+          if (CFG.winprob && d.win_prob != null)
+            m += '<div class="metric wp"><b>' + d.win_prob + "%</b><i>Win · est</i></div>";
+        }
+      }
+      el("mbMetrics").innerHTML = m;
+    }
+    function renderBatters(d) {
+      var cards = [d.striker, d.non_striker].filter(Boolean);
+      var box = el("batCards");
+      if (!cards.length) { box.style.display = "none"; return; }
+      box.style.display = "";
+      box.innerHTML = cards.map(function (b) {
+        return '<div class="bat ' + (b.on_strike ? "on" : "") + '">' +
+          avatar(b.name, b.photo, "bat-av") +
+          '<div class="bat-txt">' +
+            '<div class="bn">' + esc(b.name) + (b.on_strike ? '<span class="star">●</span>' : "") + "</div>" +
+            '<div class="br"><b>' + b.runs + "</b><span>(" + b.balls + ")</span></div>" +
+            '<div class="bx">4×' + b.fours + " · 6×" + b.sixes + " · SR " + rate(b.sr) + "</div>" +
+          "</div>" +
+        "</div>";
+      }).join("");
+    }
+    function renderBowler(d) {
+      var box = el("bowlCard"), w = d.bowler;
+      if (!w) { box.style.display = "none"; return; }
+      box.style.display = "";
+      box.innerHTML =
+        '<div class="bwl-h">Bowling</div>' +
+        '<div class="bwl-n">' + esc(w.name) + "</div>" +
+        '<div class="bwl-fig"><b>' + esc(w.overs) + "-" + w.maidens + "-" + w.runs + "-" + w.wickets + "</b></div>" +
+        '<div class="bwl-eco">Eco ' + rate(w.econ) + "</div>";
+    }
+    function renderRecent(d, changed) {
+      var box = el("recent");
+      if (!d.recent || !d.recent.length) { box.style.display = "none"; return; }
+      box.style.display = "";
+      var last = d.recent.length - 1;
+      box.innerHTML = '<span class="rc-lbl">Recent</span>' + d.recent.map(function (b, i) {
+        return '<span class="rc ' + b.cls + (changed && i === last ? " newball" : "") + '">' + esc(b.t) + "</span>";
+      }).join("");
+    }
+    function pnrHtml(d, p) {
+      function row(b) {
+        return b ? '<div class="pnr-b"><span>' + esc(b.name) + '</span><b>' + b.runs + "* (" + b.balls + ")</b></div>" : "";
+      }
+      return '<div class="pnr-h">🤝 Partnership</div>' + row(d.striker) + row(d.non_striker) +
+        '<div class="pnr-tot"><b>' + p.runs + "</b> Runs · <b>" + p.balls + "</b> Balls</div>";
+    }
+    function renderPnr(d) {
+      var box = el("pnr"), p = d.partnership;
+      var have = p && (p.runs || p.balls || d.striker || d.non_striker);
+      if (!have) { if (!pnrPending) { box.style.display = "none"; box.className = "pnr"; } pnrKey = null; return; }
+      var key = (p.a || "") + "|" + (p.b || "");
+      if (key !== pnrKey) {
+        if (pnrKey !== null) {                    // a stand just broke (wicket) → fade out, re-show after 2s
+          pnrPending = true;
+          box.className = "pnr pnr-out";
+          clearTimeout(pnrTimer);
+          pnrTimer = setTimeout(function () {
+            pnrPending = false;
+            var np = prev && prev.partnership;
+            if (!np || (!np.runs && !np.balls && !(prev.striker || prev.non_striker))) {
+              box.style.display = "none"; box.className = "pnr"; return;
+            }
+            box.innerHTML = pnrHtml(prev, np); box.style.display = "";
+            box.className = "pnr"; void box.offsetWidth; box.className = "pnr pnr-in";
+          }, 2000);
+        } else {                                  // first appearance → slide + fade + scale in
+          box.innerHTML = pnrHtml(d, p); box.style.display = "";
+          box.className = "pnr"; void box.offsetWidth; box.className = "pnr pnr-in";
+        }
+        pnrKey = key;
+      } else if (!pnrPending) {                   // same stand → live number update (no re-animate)
+        box.innerHTML = pnrHtml(d, p); box.style.display = "";
+      }
+    }
+    function renderTicker(d) {
+      var box = el("ticker");
+      if (!CFG.ticker || !d.ticker || !d.ticker.length) { box.style.display = "none"; return; }
+      box.style.display = "";
+      var key = d.ticker.join("|");
+      if (key === lastTicker) return;          // avoid restarting the scroll every poll
+      lastTicker = key;
+      var items = d.ticker.map(function (t) { return '<span class="tk">' + esc(t) + "</span>"; })
+                          .join('<span class="tk-sep">•</span>');
+      var sep = '<span class="tk-sep">•</span>';
+      el("tickerTrack").innerHTML = items + sep + items;
+    }
+    function renderMoM(d) {
+      var box = el("mom");
+      if (!d.complete || !d.awards || !d.awards.man_of_the_match) { return; }
+      if (momShown) return;
+      momShown = true;
+      var a = d.awards.man_of_the_match;
+      box.style.display = "";
+      box.innerHTML =
+        '<div class="mom-card">' +
+          '<div class="mom-h">Player of the Match</div>' +
+          avatar(a.name, a.photo, "mom-av") +
+          '<div class="mom-name">' + esc(a.name) + "</div>" +
+          (a.team ? '<div class="mom-team">' + esc(a.team) + "</div>" : "") +
+          (a.line ? '<div class="mom-line">' + esc(a.line) + "</div>" : "") +
+          (a.impact != null ? '<div class="mom-impact">Impact Score <b>' + a.impact + "</b></div>" : "") +
+          '<div class="mom-brand">CRIC<span>NETRA</span></div>' +
+        "</div>";
+    }
+
+    function render(d, changed) {
+      el("dock").style.display = "";
+      renderFmt(d); renderMatchInfo(d); renderPhase(d); renderMain(d);
+      renderBatters(d); renderBowler(d); renderRecent(d, changed);
+      renderPnr(d); renderTicker(d); renderMoM(d);
+    }
+
+    /* ---------- event detection → animations ---------- */
+    function prevRuns(name) {
+      if (!prev) return null;
+      var list = [prev.striker, prev.non_striker];
+      for (var i = 0; i < list.length; i++) if (list[i] && list[i].name === name) return list[i].runs;
+      return null;
+    }
+    function cross(a, b, n) { return a < n && b >= n; }
+
+    function detect(d) {
+      if (!prev) return;
+      if (d.seq > (prev.seq == null ? -1 : prev.seq)) {
+        var lb = d.last_ball;
+        if (lb) {
+          if (lb.kind === "wicket") enqueue({ type: "wicket", lb: lb, d: d, dur: 6000 });
+          else if (lb.kind === "six") enqueue({ type: "boundary", six: true, dur: 3000 });
+          else if (lb.kind === "four") enqueue({ type: "boundary", six: false, dur: 2500 });
+        }
+      }
+      [d.striker, d.non_striker].forEach(function (b) {
+        if (!b) return;
+        var pr = prevRuns(b.name);
+        if (pr == null) return;
+        if (cross(pr, b.runs, 100)) enqueue({ type: "milestone", big: "HUNDRED", b: b, dur: 7000 });
+        else if (cross(pr, b.runs, 50)) enqueue({ type: "milestone", big: "FIFTY", b: b, dur: 6000 });
+      });
+      if (prev.batting === d.batting) {
+        if (cross(prev.runs, d.runs, 200)) enqueue({ type: "team", n: 200, team: d.batting, dur: 5000 });
+        else if (cross(prev.runs, d.runs, 100)) enqueue({ type: "team", n: 100, team: d.batting, dur: 5000 });
+      }
+      // reset once-per-innings banners when the innings changes
+      if (d.innings_no !== lastInnings) { ppShown = false; lastInnings = d.innings_no; }
+      // partnership milestone — the same stand growing past a threshold
+      if (prev.partnership && d.partnership &&
+          prev.partnership.a === d.partnership.a && prev.partnership.b === d.partnership.b) {
+        var PMS = [200, 150, 100, 75, 50, 25];
+        for (var i = 0; i < PMS.length; i++) {
+          if (cross(prev.partnership.runs, d.partnership.runs, PMS[i])) {
+            enqueue({ type: "pnr-milestone", n: PMS[i], p: d.partnership, dur: 4000 });
+            break;
+          }
+        }
+      }
+      // powerplay summary — once, when the powerplay completes
+      if (d.pp_summary && !ppShown) { ppShown = true; enqueue({ type: "pp", pp: d.pp_summary, dur: 8000 }); }
+      // innings break — full summary card when the first innings ends
+      if (!breakShown && d.status === "break" && d.innings_summary) {
+        breakShown = true;
+        enqueue({ type: "break", s: d.innings_summary, dur: 10000 });
+      }
+      // DLS revised target — the banner fires once per completed revision (8s, then fades)
+      if (d.dls && d.dls.revised_target && (d.dls.revision_seq || 0) > dlsSeq) {
+        dlsSeq = d.dls.revision_seq || 0;
+        enqueue({ type: "dls", dls: d.dls, dur: 8000 });
+      }
+    }
+
+    function suTile(label, val) { return '<div class="su-tile"><b>' + val + "</b><i>" + label + "</i></div>"; }
+    function breakHtml(s) {
+      function cell(val, label) { return '<div class="br-cell"><b>' + val + "</b><i>" + label + "</i></div>"; }
+      function line(label, val) { return val ? '<div class="br-line"><span>' + label + "</span><b>" + val + "</b></div>" : ""; }
+      var pp = s.powerplay, hp = s.highest_pnr, tb = s.top_bat, tw = s.top_bowl;
+      return '<div class="br-h">Innings Break · ' + esc(s.team) + "</div>" +
+        '<div class="br-score">' + s.total + "/" + s.wickets + "</div>" +
+        '<div class="br-rr">' + esc(s.overs) + " overs · RR " + rate(s.run_rate) + "</div>" +
+        '<div class="br-grid">' +
+          cell(s.boundaries, "Boundaries") + cell(s.sixes, "Sixes") +
+          cell(s.dots, "Dot Balls") + cell(s.extras, "Extras") +
+        "</div>" +
+        '<div class="br-lines">' +
+          (tb ? line("Top Batter", esc(tb.name) + " " + tb.runs + " (" + tb.balls + ")") : "") +
+          (tw ? line("Top Bowler", esc(tw.name) + " " + tw.wickets + "/" + tw.runs + " (" + esc(tw.overs) + ")") : "") +
+          (hp ? line("Highest Partnership", hp.runs + " (" + esc(hp.a) + " & " + esc(hp.b) + ")") : "") +
+          (pp ? line("Powerplay", pp.runs + "/" + pp.wickets + " · RR " + rate(pp.run_rate)) : "") +
+          (s.death && s.death.overs ? line("Death Overs", s.death.runs + "/" + s.death.wickets) : "") +
+        "</div>";
+    }
+    function buildFx(ev) {
+      var n = document.createElement("div");
+      var shine = '<div class="fx-shine"></div>';
+      if (ev.type === "boundary") {
+        n.className = "fx-card fx-boundary " + (ev.six ? "six" : "four");
+        n.innerHTML = '<div class="big">' + (ev.six ? "SIX" : "FOUR") + "</div>" + shine;
+      } else if (ev.type === "wicket") {
+        var lb = ev.lb, d = ev.d;
+        var who = lb.out_batter || lb.batter || "";
+        var dismissal = String(lb.text || "").split("OUT!").pop().trim() || "Wicket";
+        n.className = "fx-card fx-wicket";
+        n.innerHTML = '<div class="w-big">WICKET!</div>' +
+          (who ? '<div class="w-name">' + esc(who) + "</div>" : "") +
+          '<div class="w-sub">' + esc(dismissal) + (lb.bowler ? "  ·  b " + esc(lb.bowler) : "") + "</div>" +
+          '<div class="w-score">' + d.runs + "/" + d.wickets + "  ·  " + esc(d.overs) + " ov</div>" + shine;
+      } else if (ev.type === "milestone") {
+        n.className = "fx-card fx-milestone";
+        n.innerHTML = '<div class="m-big">' + ev.big + "</div>" +
+          '<div class="m-name">' + esc(ev.b.name) + "</div>" +
+          '<div class="m-sub">' + ev.b.runs + " (" + ev.b.balls + ")</div>" + shine;
+      } else if (ev.type === "team") {
+        n.className = "fx-card fx-team";
+        n.innerHTML = '<div class="t-big">' + esc(ev.team) + " " + ev.n + "</div>" +
+          '<div class="t-sub">Team milestone</div>';
+      } else if (ev.type === "pnr-milestone") {
+        n.className = "fx-card fx-pnr";
+        n.innerHTML = '<div class="fx-glow"></div>' +
+          '<div class="pm-ico">🤝</div>' +
+          '<div class="pm-big">' + ev.n + " RUN PARTNERSHIP</div>" +
+          '<div class="pm-names">' + esc(ev.p.a) + " &nbsp;&amp;&nbsp; " + esc(ev.p.b) + "</div>" +
+          '<div class="pm-sub">' + ev.p.runs + " Runs · " + ev.p.balls + " Balls</div>" + shine;
+      } else if (ev.type === "pp") {
+        var s = ev.pp;
+        n.className = "fx-card fx-summary";
+        n.innerHTML = '<div class="su-h">Powerplay · ' + s.overs + " ov</div>" +
+          '<div class="su-score">' + s.runs + "/" + s.wickets + "</div>" +
+          '<div class="su-grid">' +
+            suTile("Run Rate", rate(s.run_rate)) +
+            suTile("Boundaries", s.boundaries) +
+            suTile("Sixes", s.sixes) +
+          "</div>" + shine;
+      } else if (ev.type === "break") {
+        n.className = "fx-card fx-break";
+        n.innerHTML = breakHtml(ev.s);
+      } else if (ev.type === "dls") {
+        var dd = ev.dls;
+        n.className = "fx-card fx-dls";
+        n.innerHTML = '<div class="dl-h">Duckworth–Lewis–Stern</div>' +
+          '<div class="dl-sub">' + (dd.abandoned ? "Match Abandoned" : "Target Revised") + "</div>" +
+          '<div class="dl-t">' + (dd.revised_target != null ? dd.revised_target : "—") + "</div>" +
+          '<div class="dl-o">' + (dd.revised_overs ? dd.revised_overs + " Overs" : "") +
+            (dd.par != null ? (dd.revised_overs ? "  ·  " : "") + "Par " + dd.par : "") + "</div>" + shine;
+      }
+      return n;
+    }
+    function enqueue(ev) { fxQueue.push(ev); pump(); }
+    function pump() {
+      if (fxBusy) return;
+      var ev = fxQueue.shift();
+      if (!ev) return;
+      fxBusy = true;
+      window.__cnFxBusy = true;   // event-priority hook for the broadcast controller
+      var fx = el("fx"), node = buildFx(ev);
+      fx.innerHTML = "";
+      fx.appendChild(node);
+      setTimeout(function () {
+        node.classList.add("out");
+        setTimeout(function () {
+          if (fx.contains(node)) fx.removeChild(node);
+          fxBusy = false;
+          window.__cnFxBusy = false;
+          pump();
+        }, 450);
+      }, ev.dur || 3000);
+    }
+
+    /* ---------- live loop ---------- */
+    async function tick() {
+      try {
+        var r = await fetch("/api/v1/matches/" + MID + "/overlay", { cache: "no-store" });
+        if (!r.ok) return;
+        var d = await r.json();
+        var changed = !prev || d.seq !== prev.seq;
+        render(d, changed);
+        detect(d);
+        prev = d;
+        window.__cnLive = d;       // shared with the broadcast controller (takeover data)
+      } catch (e) { /* keep the last good frame on the screen */ }
+    }
+
+    tick();
+    setInterval(tick, CFG.poll);              // safety poll (also covers SSE drops)
+    if (window.EventSource) {                 // instant nudge whenever the score changes
+      var es = null;
+      function sub() {
+        try { es = new EventSource("/api/v1/matches/" + MID + "/stream"); }
+        catch (e) { return; }
+        es.onmessage = function () { tick(); };
+        es.onerror = function () {
+          if (es) { es.close(); es = null; }
+          if (!(prev && prev.complete)) setTimeout(sub, 4000);
+        };
+      }
+      sub();
+    }
+  })();
+  {% endraw %}</script>
+
+  <script>{% raw %}
+  /* ===== Smart Broadcast Controller — one browser source, no OBS scene switching.
+     The operator drives modes from ?control=1 (panel + keyboard); a tiny server-held
+     "current mode" syncs every open overlay instance (incl. the one inside OBS), which
+     cross-fades between the LIVE scoreboard and full-screen takeover screens. ===== */
+  (function () {
+    "use strict";
+    var MID = document.body.dataset.mid;
+    var Q = new URLSearchParams(location.search);
+    var CONTROL = Q.get("control") === "1";
+    var POLL = 450;
+    var MODES = ["LIVE", "WORM", "WAGON", "PITCH", "PARTNERSHIP", "SUMMARY"];
+    var KEYMAP = { l: "LIVE", w: "WORM", g: "WAGON", p: "PITCH", h: "PARTNERSHIP", s: "SUMMARY" };
+    var stage = document.getElementById("bcStage");
+    var el = function (id) { return document.getElementById(id); };
+    var state = { mode: "LIVE", auto: false, seq: -1 };
+    var analysis = null, _anim = true, _anSig = null;
+    var _anFilter = { WAGON: null, PITCH: null };   // active filter per scene, preserved across refreshes
+
+    function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+    function rate(x) { return (x == null || isNaN(x)) ? "–" : Number(x).toFixed(2); }
+    function mono(n) { n = (n || "").trim(); if (!n) return "?"; var w = n.split(/\s+/);
+      return (w.length === 1 ? w[0].slice(0, 3) : w.map(function (x) { return x[0] || ""; }).join("")).toUpperCase(); }
+    function curInn() { return analysis && analysis.innings ? analysis.innings[(analysis.innings_no || 1) - 1] : null; }
+
+    function anSig(a) {   // a cheap fingerprint — only re-render a scene when the data really changed
+      if (!a) return "";
+      return [(a.wagon || []).length, (a.pitch || []).length, (a.worm || []).length,
+              a.projected, a.max_overs, a.innings_no].join("|");
+    }
+    async function pullAnalysis() {
+      try {
+        var r = await fetch("/api/v1/matches/" + MID + "/analysis", { cache: "no-store" });
+        if (!r.ok) return;
+        var na = await r.json(), sig = anSig(na);
+        analysis = na;
+        // Re-render the takeover ONLY when the data changed — otherwise a static scene would
+        // rebuild every 3.5s and wipe the operator's active filter selection.
+        if (sig !== _anSig && state.mode !== "LIVE" && stage.querySelector(".bc-panel")) {
+          renderTakeover(state.mode, true);
+        }
+        _anSig = sig;
+      } catch (e) { /* keep last data */ }
+    }
+
+    /* ---------- takeover panels (reuse the shared components + live payload) ---------- */
+    function panel(html) { var p = document.createElement("div"); p.className = "bc-panel" + (_anim ? " bc-in" : ""); p.innerHTML = html; return p; }
+
+    function wormPanel() {
+      var inn = curInn(), worm = (inn && inn.worm) || [], live = window.__cnLive || {}, doAnim = _anim;
+      if (!worm.length) return panel('<div class="bc-h">Run Worm</div><div class="bc-card" style="text-align:center;color:var(--muted)">No data yet</div>');
+      var W = 1000, H = 360, l = 52, r = 16, t = 16, b = 34;
+      var maxO = inn.max_overs || worm.length, maxR = Math.ceil(Math.max(10, worm[worm.length - 1] || 0) / 10) * 10;
+      function px(o) { return l + (o / maxO) * (W - l - r); } function py(v) { return H - b - (v / maxR) * (H - t - b); }
+      var parts = [];
+      [0, .5, 1].forEach(function (f) { var y = py(maxR * f);
+        parts.push('<line class="axis" x1="' + l + '" y1="' + y.toFixed(1) + '" x2="' + (W - r) + '" y2="' + y.toFixed(1) + '"/><text class="axis-txt" x="' + (l - 8) + '" y="' + (y + 4).toFixed(1) + '" text-anchor="end">' + Math.round(maxR * f) + "</text>"); });
+      var step = Math.max(1, Math.round(maxO / 6));
+      for (var o = step; o <= maxO; o += step) parts.push('<text class="axis-txt" x="' + px(o).toFixed(1) + '" y="' + (H - 8) + '" text-anchor="middle">' + o + "</text>");
+      var pts = [[l, py(0)]]; worm.forEach(function (v, i) { pts.push([px(i + 1), py(v)]); });
+      var dl = "M" + pts.map(function (p) { return p[0].toFixed(1) + "," + p[1].toFixed(1); }).join(" L"), last = pts[pts.length - 1];
+      parts.push('<path class="warea" d="' + dl + " L" + last[0].toFixed(1) + "," + py(0).toFixed(1) + " L" + l + "," + py(0).toFixed(1) + ' Z"/>');
+      parts.push('<path class="wline" id="bcWorm" d="' + dl + '"/>');
+      parts.push('<circle cx="' + last[0].toFixed(1) + '" cy="' + last[1].toFixed(1) + '" r="6" fill="var(--green-2)"/>');
+      var p = panel('<div class="bc-h">Run Worm — ' + esc(live.batting || "") + '</div><div class="bc-card bc-worm"><svg viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="none">' + parts.join("") + "</svg></div>");
+      setTimeout(function () { var path = p.querySelector("#bcWorm"); if (!path) return; var len = path.getTotalLength(); path.style.strokeDasharray = len;
+        if (doAnim) { path.style.strokeDashoffset = len; requestAnimationFrame(function () { requestAnimationFrame(function () { path.style.strokeDashoffset = 0; }); }); setTimeout(function () { path.style.strokeDashoffset = 0; }, 1300); }
+        else path.style.strokeDashoffset = 0; }, 30);
+      return p;
+    }
+    function wagonPanel() {
+      var live = window.__cnLive || {}, doAnim = _anim;
+      var p = panel('<div class="bc-h">Wagon Wheel' + (live.striker ? " · " + esc(live.striker.name) : "") + '</div><div class="bc-card"><div class="bc-wagon-host" id="bcWagonHost"></div></div>');
+      setTimeout(function () { if (window.CricWagon) CricWagon.mount(p.querySelector("#bcWagonHost"), (analysis && analysis.wagon) || [],
+        { batter: live.striker && live.striker.name, ppOvers: analysis && analysis.pp_overs, maxOvers: analysis && analysis.max_overs, animate: doAnim, activeFilter: _anFilter.WAGON }); }, 30);
+      return p;
+    }
+    function pitchPanel() {
+      var doAnim = _anim;
+      var p = panel('<div class="bc-h">Pitch Map</div><div class="bc-card"><div class="bc-pitch-host" id="bcPitchHost"></div></div>');
+      setTimeout(function () { if (window.CricPitch) CricPitch.mount(p.querySelector("#bcPitchHost"), (analysis && analysis.pitch) || [],
+        { ppOvers: analysis && analysis.pp_overs, maxOvers: analysis && analysis.max_overs, animate: doAnim, activeFilter: _anFilter.PITCH }); }, 30);
+      return p;
+    }
+    function avatar(b) { var ph = b && b.photo; return '<div class="bc-av"><span>' + esc(mono(b && b.name)) + "</span>" + (ph ? '<img src="' + esc(ph) + '" alt="" onerror="this.remove()">' : "") + "</div>"; }
+    function batCol(b) { return b ? '<div class="bc-bat">' + avatar(b) + '<div class="nm">' + esc(b.name) + '</div><div class="rr">' + b.runs + " <span>(" + b.balls + ")</span></div><div class=\"sr\">SR " + rate(b.sr) + "</div></div>" : "<div></div>"; }
+    function partnershipPanel() {
+      var live = window.__cnLive || {}, pn = live.partnership || {};
+      var hp = (live.innings_summary && live.innings_summary.highest_pnr) || null;
+      return panel('<div class="bc-h">🤝 Partnership</div><div class="bc-card"><div class="bc-pnr-pair">' +
+        batCol(live.striker) + '<div class="bc-pnr-mid"><div class="lbl">Stand</div><div class="big">' + (pn.runs || 0) + '</div><div class="sr">' + (pn.balls || 0) + " balls</div></div>" + batCol(live.non_striker) +
+        "</div>" + (hp ? '<div class="bc-pnr-foot">Highest partnership: <b style="color:var(--ink)">' + hp.runs + "</b> (" + esc(hp.a) + " &amp; " + esc(hp.b) + ")</div>" : "") + "</div>");
+    }
+    function sumCell(v, label, gold) { return '<div class="bc-sum' + (gold ? " gold" : "") + '"><b>' + v + "</b><i>" + label + "</i></div>"; }
+    function summaryPanel() {
+      var live = window.__cnLive || {}, is = live.innings_summary || {}, chase = live.innings_no >= 2 && live.target != null;
+      return panel('<div class="bc-h">Match Summary</div><div class="bc-card"><div class="bc-sum-grid">' +
+        sumCell(live.runs + "/" + live.wickets, "Score") +
+        sumCell(chase ? live.target : ((analysis && analysis.projected) || "–"), chase ? "Target" : "Projected", true) +
+        sumCell(rate(live.crr), "Current RR") +
+        sumCell(chase && live.rrr != null ? rate(live.rrr) : "–", "Required RR") +
+        sumCell(is.boundaries != null ? is.boundaries : "–", "Boundaries") +
+        sumCell(is.sixes != null ? is.sixes : "–", "Sixes") +
+        sumCell(is.dots != null ? is.dots : "–", "Dot Balls") +
+        sumCell(is.extras != null ? is.extras : "–", "Extras") + "</div></div>");
+    }
+    var RENDER = { WORM: wormPanel, WAGON: wagonPanel, PITCH: pitchPanel, PARTNERSHIP: partnershipPanel, SUMMARY: summaryPanel };
+
+    function capFilter(m) {   // remember the operator's active filter before a rebuild wipes it
+      var host = stage.querySelector(m === "WAGON" ? "#bcWagonHost" : m === "PITCH" ? "#bcPitchHost" : "\0");
+      var on = host && host.querySelector(".cn-an-f.on");
+      if (on) _anFilter[m] = on.textContent;
+    }
+    function renderTakeover(m, refresh) {
+      var build = RENDER[m]; if (!build) return;
+      _anim = !refresh;
+      if (refresh) capFilter(m);   // a data refresh must not reset the active filter
+      var node = build(), olds = stage.querySelectorAll(".bc-panel");
+      if (refresh) {   // silent data refresh — replace all panels instantly, no crossfade
+        Array.prototype.forEach.call(olds, function (o) { if (stage.contains(o)) stage.removeChild(o); });
+        stage.appendChild(node); return;
+      }
+      Array.prototype.forEach.call(olds, function (o) {   // fade out ALL existing panels (dedupe)
+        o.classList.remove("bc-in"); o.classList.add("bc-out");
+        setTimeout(function () { if (stage.contains(o)) stage.removeChild(o); }, 340);
+      });
+      stage.appendChild(node);
+    }
+
+    /* ---------- mode application + transitions ---------- */
+    function fadeLive(hide) {   // !important opacity beats the dock's riseIn animation in the cascade
+      ["dock", "ticker", "matchinfo"].forEach(function (id) { var e = el(id); if (!e) return;
+        e.style.transition = "opacity .35s ease";
+        e.style.setProperty("opacity", hide ? "0" : "1", "important");
+        e.style.pointerEvents = hide ? "none" : ""; });
+    }
+    function applyMode(m) {
+      if (m === "LIVE") { document.body.classList.remove("bc-takeover"); fadeLive(false); stage.classList.remove("show");
+        setTimeout(function () { if (state.mode === "LIVE") stage.innerHTML = ""; }, 400); }
+      else { renderTakeover(m, false); document.body.classList.add("bc-takeover"); fadeLive(true); stage.classList.add("show"); }
+      updateCtl();
+    }
+    function localSet(m) { m = (m || "LIVE").toUpperCase(); if (MODES.indexOf(m) < 0 || m === state.mode) return; state.mode = m; applyMode(m); }
+    async function post(body) {
+      try { var r = await fetch("/api/v1/matches/" + MID + "/broadcast", { method: "POST", headers: { "Content-Type": "application/json" }, cache: "no-store", body: JSON.stringify(body) });
+        if (r.ok) { var d = await r.json(); state.seq = d.seq; } } catch (e) { /* failsafe: local view already applied */ }
+    }
+    function operatorSet(m) { localSet(m); post({ mode: m }); }
+    function operatorAuto(on) { state.auto = on; updateCtl(); post({ auto: on }); }
+
+    async function pollMode() {
+      try {
+        var r = await fetch("/api/v1/matches/" + MID + "/broadcast", { cache: "no-store" }); if (!r.ok) return;
+        var d = await r.json();
+        if (d.seq !== state.seq) { state.seq = d.seq; state.auto = d.auto; if (d.mode !== state.mode) localSet(d.mode); updateCtl(); }
+      } catch (e) { /* controller/server unreachable → keep current screen (failsafe) */ }
+    }
+
+    /* ---------- operator panel (only rendered with ?control=1) ---------- */
+    function updateCtl() {
+      if (!CONTROL) return;
+      var mEl = el("bcCtlMode"); if (mEl) mEl.textContent = state.mode + (state.auto ? " · AUTO" : "");
+      Array.prototype.forEach.call(el("bcCtlBtns").querySelectorAll("button"), function (b) { b.classList.toggle("on", b.dataset.m === state.mode); });
+      var a = el("bcAuto"); if (a) a.checked = state.auto;
+    }
+    function buildCtl() {
+      el("bcCtl").hidden = false;
+      document.body.classList.add("bc-control");   // lets the operator click the analytics filter chips
+
+      var keys = { LIVE: "L", WORM: "W", WAGON: "G", PITCH: "P", PARTNERSHIP: "H", SUMMARY: "S" };
+      el("bcCtlBtns").innerHTML = MODES.map(function (m) { return '<button data-m="' + m + '">' + m + "<kbd>" + keys[m] + "</kbd></button>"; }).join("");
+      Array.prototype.forEach.call(el("bcCtlBtns").querySelectorAll("button"), function (b) { b.onclick = function () { operatorSet(b.dataset.m); }; });
+      el("bcAuto").onchange = function () { operatorAuto(this.checked); };
+      updateCtl();
+    }
+
+    /* ---------- keyboard (instant; works in the operator tab) ---------- */
+    window.addEventListener("keydown", function (e) {
+      if (e.target && /^(input|textarea|select)$/i.test(e.target.tagName)) return;
+      if (e.key === "Escape") { operatorSet("LIVE"); return; }
+      var k = (e.key || "").toLowerCase();
+      if (k === "a") { operatorAuto(!state.auto); return; }
+      if (KEYMAP[k]) { e.preventDefault(); operatorSet(KEYMAP[k]); }
+    });
+
+    /* ---------- AUTO mode: event-driven takeovers, then return LIVE ---------- */
+    var lastOver = -1, lastPnr = 0, autoBusy = false, wasBreak = false;
+    function overNo(o) { var v = parseInt(String(o || "0").split(".")[0], 10); return isNaN(v) ? 0 : v; }
+    function autoShow(m, secs) {
+      if (autoBusy) return; autoBusy = true;
+      localSet(m); post({ mode: m });
+      setTimeout(function () { operatorSet("LIVE"); autoBusy = false; }, (secs || 5) * 1000);
+    }
+    function autoTick() {
+      if (!state.auto || window.__cnFxBusy) return;          // event-priority: never interrupt an FX
+      var d = window.__cnLive; if (!d || autoBusy) return;
+      if (d.status === "break" && !wasBreak) { wasBreak = true; autoShow("SUMMARY", 7); return; }
+      if (d.status !== "break") wasBreak = false;
+      var ov = overNo(d.overs), ball = String(d.overs || "0.0").split(".")[1];
+      if (ov > lastOver && ball === "0" && ov > 0) { lastOver = ov; autoShow("WORM", 5); return; }
+      if (ov > lastOver) lastOver = ov;
+      var pr = (d.partnership && d.partnership.runs) || 0;
+      if (pr < 25) lastPnr = 0;
+      if (pr >= 100 && lastPnr < 100) { lastPnr = 100; autoShow("PARTNERSHIP", 6); }
+      else if (pr >= 50 && lastPnr < 50) { lastPnr = 50; autoShow("PARTNERSHIP", 6); }
+    }
+
+    /* ---------- boot ---------- */
+    (async function boot() {
+      fadeLive(false);           // guarantee the LIVE scoreboard is visible — the dock's
+                                 // riseIn entrance animation can otherwise leave it at opacity 0
+      if (CONTROL) buildCtl();
+      await pullAnalysis();      // load takeover data before restoring a mode
+      await pollMode();          // restore the server-held mode (survives refresh)
+      setInterval(pollMode, POLL);
+      setInterval(pullAnalysis, 3500);
+      setInterval(autoTick, 700);
+    })();
+  })();
+  {% endraw %}</script>
+</body>
+</html>

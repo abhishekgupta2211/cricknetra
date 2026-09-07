@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="CricNetra">
+  <defs>
+    <linearGradient id="cnbg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#12241a"/>
+      <stop offset="1" stop-color="#070f0b"/>
+    </linearGradient>
+    <radialGradient id="cnglow" cx="0.28" cy="0.22" r="0.85">
+      <stop offset="0" stop-color="#2fe08a" stop-opacity=".42"/>
+      <stop offset="0.55" stop-color="#2fe08a" stop-opacity=".05"/>
+      <stop offset="1" stop-color="#2fe08a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="cntrail" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#2fe08a" stop-opacity="0"/>
+      <stop offset="1" stop-color="#2fe08a" stop-opacity=".95"/>
+    </linearGradient>
+    <style>
+      /* The ball is anchored at the trail's end (cx/cy below), so any non-animating
+         render — e.g. the favicon — shows it correctly. The animation flies it from
+         the trail's start, along the arc, back to that resting spot, then loops. */
+      .cnball { animation: cnfly 2.6s ease-in-out infinite; }
+      @keyframes cnfly {
+        0%   { transform: translate(-173px, 162px); opacity: 0; }   /* trail start (lower-left) */
+        10%  { transform: translate(-173px, 162px); opacity: 1; }
+        30%  { transform: translate(-75px, 104px); opacity: 1; }    /* mid-arc */
+        52%  { transform: translate(0px, 0px);    opacity: 1; }     /* lands at the tip */
+        72%  { transform: translate(0px, 0px);    opacity: 1; }
+        84%  { transform: translate(0px, 0px);    opacity: 0; }
+        100% { transform: translate(-173px, 162px); opacity: 0; }   /* invisible reset */
+      }
+      @media (prefers-reduced-motion: reduce) { .cnball { animation: none; } }
+    </style>
+  </defs>
+  <!-- dark rounded tile + green glow + rim, matching the brand mark -->
+  <rect width="512" height="512" rx="118" fill="url(#cnbg)"/>
+  <rect width="512" height="512" rx="118" fill="url(#cnglow)"/>
+  <rect x="7" y="7" width="498" height="498" rx="111" fill="none" stroke="#2fe08a" stroke-opacity=".5" stroke-width="6"/>
+  <!-- cricket ball's trajectory; the ball flies along it -->
+  <path d="M205 312 Q318 268 372 166" fill="none" stroke="url(#cntrail)" stroke-width="15" stroke-linecap="round"/>
+  <circle class="cnball" cx="378" cy="150" r="27" fill="#2fe08a"/>
+  <!-- CN wordmark -->
+  <text x="252" y="340" font-family="'Space Grotesk','Segoe UI',Arial,sans-serif" font-size="184" font-weight="800" fill="#fff" text-anchor="middle" letter-spacing="-6">CN</text>
+</svg>

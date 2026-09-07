@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CricNetra — Match Analysis</title>
+  <meta name="robots" content="noindex">
+  <style>{% raw %}
+    /* =========================================================================
+       CricNetra analysis scene — transparent, self-contained (OBS/vMix browser
+       source). Same theme + scaling as the scoreboard overlay. Graphs animate once
+       on load; numbers roll. Add as a separate OBS scene: /overlay/{id}/analysis
+       ========================================================================= */
+    :root{
+      --green:#0c9b54; --green-2:#13c46e; --gold:#f5c518; --cyan:#34c8ff;
+      --ink:#ffffff; --muted:rgba(255,255,255,.62);
+      --panel:rgba(17,22,20,.86); --panel-2:rgba(9,13,11,.92);
+      --line:rgba(255,255,255,.13); --line-2:rgba(255,255,255,.07);
+      --grid:rgba(255,255,255,.09);
+      --shadow:0 .6rem 1.8rem rgba(0,0,0,.45);
+      font-size:clamp(8px,0.833vw,22px);
+    }
+    body.light{
+      --ink:#0f1d16; --muted:#5b6b62;
+      --panel:rgba(255,255,255,.93); --panel-2:rgba(255,255,255,.97);
+      --line:rgba(0,0,0,.10); --line-2:rgba(0,0,0,.05); --grid:rgba(0,0,0,.09);
+      --shadow:0 .6rem 1.6rem rgba(0,0,0,.2);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{background:transparent!important;width:100%;overflow-x:hidden}   /* scroll vertically; never clip content */
+    body{font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:var(--ink);
+      -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+    b,strong{font-weight:800}
+    .glass{background:var(--panel);backdrop-filter:blur(14px) saturate(140%);
+      -webkit-backdrop-filter:blur(14px) saturate(140%);border:1px solid var(--line);
+      border-radius:1rem;box-shadow:var(--shadow)}
+
+    .wrap{max-width:80rem;margin:0 auto;padding:1.4rem 2rem 2rem;display:flex;flex-direction:column;gap:.85rem;
+      animation:rise .5s ease both}
+    /* header */
+    .ah{display:flex;justify-content:space-between;align-items:flex-end;gap:1rem}
+    .ah-l .ah-teams{font-size:1.7rem;font-weight:800;letter-spacing:-.01em}
+    .ah-l .ah-teams em{color:var(--muted);font-style:normal;font-weight:600;margin:0 .35rem}
+    .ah-l .ah-sub{font-size:.82rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:.15rem}
+    .ah-r{text-align:right}
+    .ah-brand{font-size:1.15rem;font-weight:800;letter-spacing:.14em}
+    .ah-brand span{color:var(--green-2)}
+    .ah-tag{font-size:.66rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--green-2);margin-top:.1rem}
+
+    /* top tiles (projected / CRR / RRR) */
+    .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+    .tile{padding:1rem 1.2rem;text-align:center}
+    .tile .k{font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+    .tile .v{font-size:2.9rem;font-weight:800;line-height:1.05;letter-spacing:-.02em;margin-top:.2rem}
+    .tile.proj .v{color:var(--green-2)} .tile.rrr .v{color:var(--gold)}
+
+    /* worm graph */
+    .worm-card{padding:1.1rem 1.3rem 1rem}
+    .an-analytics{display:grid;grid-template-columns:1fr 1fr;gap:.9rem}
+    .an-mod{padding:.8rem 1rem}
+    #wagonHost{max-width:15rem;margin:.3rem auto 0}
+    #pitchHost{max-width:10.5rem;margin:.3rem auto 0}
+    .an-cols{display:grid;grid-template-columns:1.15fr 1fr;gap:1rem;align-items:start}
+    .an-col{display:flex;flex-direction:column;gap:.85rem;min-width:0}
+    @media (max-width:900px){.an-analytics{grid-template-columns:1fr}}
+    .worm-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem}
+    .worm-title{font-size:.8rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+    .worm-legend{display:flex;gap:.9rem;font-size:.72rem;font-weight:700;color:var(--muted)}
+    .worm-legend i{display:inline-block;width:.7rem;height:.7rem;border-radius:2px;margin-right:.3rem;vertical-align:-1px}
+    .worm-wrap{position:relative}
+    svg.worm{display:block;width:100%;height:auto}
+    .worm .axis{stroke:var(--grid);stroke-width:1}
+    .worm .axis-txt{fill:var(--muted);font-size:13px;font-weight:700}
+    .worm .wline{fill:none;stroke-width:3.2;stroke-linejoin:round;stroke-linecap:round;
+      transition:stroke-dashoffset 1.15s cubic-bezier(.22,1,.36,1)}
+    .worm .warea{opacity:.14}
+    .worm .wdot{transition:opacity .3s} .worm .wdot.pulse{animation:dotPulse 1.8s ease-in-out infinite}
+    .worm-tip{position:absolute;pointer-events:none;opacity:0;transform:translate(-50%,-115%);
+      background:var(--panel-2);border:1px solid var(--line);border-radius:.5rem;padding:.3rem .55rem;
+      font-size:.72rem;font-weight:700;white-space:nowrap;box-shadow:var(--shadow);transition:opacity .12s}
+    .worm-tip b{color:var(--green-2)}
+
+    /* stat grid */
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.8rem}
+    .stat{padding:.75rem .5rem;text-align:center}
+    .stat .v{font-size:1.7rem;font-weight:800;line-height:1} .stat .k{font-size:.62rem;font-weight:800;
+      letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:.25rem}
+    /* wide cards row (partnership / powerplay) */
+    .wide{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+    .wcard{padding:.85rem 1.1rem}
+    .wcard .k{font-size:.66rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--green-2)}
+    .wcard .big{font-size:1.5rem;font-weight:800;margin-top:.15rem}
+    .wcard .sub{font-size:.78rem;color:var(--muted);font-weight:700;margin-top:.1rem}
+
+    @keyframes rise{from{opacity:0;transform:translateY(1rem)}to{opacity:1;transform:none}}
+    @keyframes dotPulse{0%,100%{opacity:1}50%{opacity:.35}}
+    @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+    /* responsive: 1600/1366 keep proportion via rem; stack tiles on very narrow */
+    @media (max-width:900px){.tiles{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.wide{grid-template-columns:1fr}.an-cols{grid-template-columns:1fr}}
+  {% endraw %}</style>
+</head>
+<body data-mid="{{ match_id }}">
+  <div class="wrap" id="wrap" style="visibility:hidden">
+    <div class="ah">
+      <div class="ah-l">
+        <div class="ah-teams" id="ahTeams"></div>
+        <div class="ah-sub" id="ahSub"></div>
+      </div>
+      <div class="ah-r"><div class="ah-brand">CRIC<span>NETRA</span></div><div class="ah-tag">Match Analysis</div></div>
+    </div>
+
+    <div class="tiles">
+      <div class="tile proj glass"><div class="k" id="t1k">Projected</div><div class="v" id="t1v">–</div></div>
+      <div class="tile glass"><div class="k">Current RR</div><div class="v" id="crrV">–</div></div>
+      <div class="tile rrr glass"><div class="k">Required RR</div><div class="v" id="rrrV">–</div></div>
+    </div>
+
+    <div class="an-cols">
+      <div class="an-col">
+        <div class="worm-card glass">
+          <div class="worm-head">
+            <div class="worm-title">Run Worm — cumulative runs</div>
+            <div class="worm-legend" id="wormLegend"></div>
+          </div>
+          <div class="worm-wrap" id="wormWrap">
+            <svg class="worm" id="wormSvg" viewBox="0 0 1000 300" preserveAspectRatio="none" aria-hidden="true"></svg>
+            <div class="worm-tip" id="wormTip"></div>
+          </div>
+        </div>
+        <div class="stats" id="stats"></div>
+      </div>
+
+      <div class="an-col">
+        <div class="wide" id="wide"></div>
+        <div class="an-analytics" id="anAnalytics" style="display:none">
+          <div class="worm-card glass an-mod">
+            <div class="worm-head"><div class="worm-title">Wagon Wheel</div></div>
+            <div id="wagonHost"></div>
+          </div>
+          <div class="worm-card glass an-mod">
+            <div class="worm-head"><div class="worm-title">Pitch Map</div></div>
+            <div id="pitchHost"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/analytics.js?v=2"></script>
+  <script>{% raw %}
+  (function () {
+    "use strict";
+    var MID = document.body.dataset.mid;
+    var Q = new URLSearchParams(location.search);
+    if (Q.get("theme") === "light") document.body.classList.add("light");
+    var accent = Q.get("accent");
+    if (accent && /^[0-9a-fA-F]{6}$/.test(accent)) document.documentElement.style.setProperty("--green", "#" + accent);
+    var POLL = Math.max(2000, parseInt(Q.get("poll") || "4000", 10) || 4000);
+
+    var el = function (id) { return document.getElementById(id); };
+    var COLORS = ["var(--green-2)", "var(--cyan)"];
+    var firstDraw = true, drawn = {}, lastWagonN = -1, lastPitchN = -1;
+
+    // Wagon wheel + pitch map via the shared component — remounted only when a new
+    // ball arrives (so filters/animation aren't reset on every 4s poll).
+    function mountAnalytics(d) {
+      var box = el("anAnalytics"), wagon = d.wagon || [], pitch = d.pitch || [];
+      if (!wagon.length && !pitch.length) { box.style.display = "none"; return; }
+      box.style.display = "";
+      if (window.CricWagon && wagon.length !== lastWagonN) {
+        lastWagonN = wagon.length;
+        CricWagon.mount(el("wagonHost"), wagon, { ppOvers: d.pp_overs, maxOvers: d.max_overs, animate: firstDraw });
+      }
+      if (window.CricPitch && pitch.length !== lastPitchN) {
+        lastPitchN = pitch.length;
+        CricPitch.mount(el("pitchHost"), pitch, { ppOvers: d.pp_overs, maxOvers: d.max_overs, animate: firstDraw });
+      }
+    }
+
+    function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+    function rate(x) { return (x == null || isNaN(x)) ? "–" : Number(x).toFixed(2); }
+    function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+
+    // number rolling (rAF; only textContent changes — no layout thrash). A setTimeout
+    // fallback guarantees the final value even if rAF is throttled (hidden tab).
+    function roll(node, to, dec) {
+      if (to == null) { node.textContent = "–"; node.removeAttribute("data-v"); return; }
+      var fin = dec ? Number(to).toFixed(dec) : String(Math.round(to));
+      var from = parseFloat(node.getAttribute("data-v") || "0") || 0, t0 = null, dur = 650, done = false;
+      node.setAttribute("data-v", to);
+      function finish() { if (!done) { done = true; node.textContent = fin; } }
+      function step(ts) {
+        if (done) return;
+        if (!t0) t0 = ts;
+        var t = Math.min(1, (ts - t0) / dur), v = from + (to - from) * easeOut(t);
+        node.textContent = dec ? v.toFixed(dec) : String(Math.round(v));
+        if (t < 1) requestAnimationFrame(step); else finish();
+      }
+      node.textContent = dec ? from.toFixed(dec) : String(Math.round(from));
+      requestAnimationFrame(step);
+      setTimeout(finish, dur + 150);
+    }
+
+    function tile(v, k) { return '<div class="stat glass"><div class="v">' + v + '</div><div class="k">' + k + "</div></div>"; }
+
+    /* ---------- worm graph (pure SVG) ---------- */
+    var GEO = { W: 1000, H: 300, l: 46, r: 14, t: 14, b: 30 };
+    function px(over, maxOvers) { return GEO.l + (maxOvers ? over / maxOvers : 0) * (GEO.W - GEO.l - GEO.r); }
+    function py(runs, maxRuns) { return GEO.H - GEO.b - (maxRuns ? runs / maxRuns : 0) * (GEO.H - GEO.t - GEO.b); }
+
+    function drawWorm(d) {
+      var svg = el("wormSvg"), inns = d.innings || [];
+      var series = inns.filter(function (s) { return s.worm && s.worm.length; });
+      if (!series.length) { el("wormWrap").style.display = "none"; return; }
+      el("wormWrap").style.display = "";
+      var maxOvers = Math.max.apply(null, series.map(function (s) { return s.max_overs || s.worm.length; }).concat([1]));
+      var maxRuns = Math.max.apply(null, series.map(function (s) { return s.worm[s.worm.length - 1] || 0; }).concat([10]));
+      maxRuns = Math.ceil(maxRuns / 10) * 10 || 10;
+
+      var svgns = "http://www.w3.org/2000/svg", parts = [];
+      // gridlines + Y labels (0, mid, max)
+      [0, 0.5, 1].forEach(function (f) {
+        var y = py(maxRuns * f, maxRuns);
+        parts.push('<line class="axis" x1="' + GEO.l + '" y1="' + y.toFixed(1) + '" x2="' + (GEO.W - GEO.r) + '" y2="' + y.toFixed(1) + '"/>');
+        parts.push('<text class="axis-txt" x="' + (GEO.l - 8) + '" y="' + (y + 4).toFixed(1) + '" text-anchor="end">' + Math.round(maxRuns * f) + "</text>");
+      });
+      // X labels (a few overs)
+      var step = Math.max(1, Math.round(maxOvers / 6));
+      for (var o = step; o <= maxOvers; o += step) {
+        var x = px(o, maxOvers);
+        parts.push('<text class="axis-txt" x="' + x.toFixed(1) + '" y="' + (GEO.H - 8) + '" text-anchor="middle">' + o + "</text>");
+      }
+      // series paths + area + end dot
+      series.forEach(function (s, idx) {
+        var col = COLORS[idx % COLORS.length];
+        var pts = [[GEO.l, py(0, maxRuns)]];
+        s.worm.forEach(function (runs, i) { pts.push([px(i + 1, maxOvers), py(runs, maxRuns)]); });
+        var dline = "M" + pts.map(function (p) { return p[0].toFixed(1) + "," + p[1].toFixed(1); }).join(" L");
+        var last = pts[pts.length - 1];
+        var darea = dline + " L" + last[0].toFixed(1) + "," + py(0, maxRuns).toFixed(1) + " L" + GEO.l + "," + py(0, maxRuns).toFixed(1) + " Z";
+        parts.push('<path class="warea" d="' + darea + '" fill="' + col + '"/>');
+        parts.push('<path class="wline" data-i="' + idx + '" d="' + dline + '" stroke="' + col + '"/>');
+        var pulse = (idx === (d.innings_no - 1)) ? " pulse" : "";
+        parts.push('<circle class="wdot' + pulse + '" cx="' + last[0].toFixed(1) + '" cy="' + last[1].toFixed(1) + '" r="6" fill="' + col + '"/>');
+      });
+      svg.innerHTML = parts.join("");
+
+      // animate the draw once per series (stroke-dashoffset → 0)
+      Array.prototype.forEach.call(svg.querySelectorAll(".wline"), function (path) {
+        var i = path.getAttribute("data-i"), len = path.getTotalLength();
+        path.style.strokeDasharray = len;
+        if (firstDraw && !drawn[i]) {
+          path.style.strokeDashoffset = len;
+          requestAnimationFrame(function () { requestAnimationFrame(function () { path.style.strokeDashoffset = 0; }); });
+          setTimeout(function () { path.style.strokeDashoffset = 0; }, 1400);  // fallback if rAF throttled
+          drawn[i] = true;
+        } else { path.style.strokeDashoffset = 0; }
+      });
+
+      // legend + hover tooltip
+      el("wormLegend").innerHTML = series.map(function (s, idx) {
+        return '<span><i style="background:' + COLORS[idx % COLORS.length] + '"></i>' + esc(s.team) + "</span>";
+      }).join("");
+      wireTip(series[series.length - 1], maxOvers, maxRuns);
+    }
+
+    function wireTip(series, maxOvers, maxRuns) {
+      var svg = el("wormSvg"), tip = el("wormTip"), wrap = el("wormWrap");
+      svg.onmousemove = function (ev) {
+        var rc = svg.getBoundingClientRect();
+        var fx = (ev.clientX - rc.left) / rc.width * GEO.W;
+        var over = Math.round((fx - GEO.l) / (GEO.W - GEO.l - GEO.r) * maxOvers);
+        if (over < 1 || over > series.worm.length) { tip.style.opacity = 0; return; }
+        var runs = series.worm[over - 1];
+        tip.innerHTML = "Over " + over + " · <b>" + runs + "</b>";
+        tip.style.left = (px(over, maxOvers) / GEO.W * rc.width) + "px";
+        tip.style.top = (py(runs, maxRuns) / GEO.H * rc.height) + "px";
+        tip.style.opacity = 1;
+      };
+      svg.onmouseleave = function () { tip.style.opacity = 0; };
+    }
+
+    /* ---------- render ---------- */
+    function render(d) {
+      el("wrap").style.visibility = "visible";
+      var chase = d.innings_no >= 2 && d.target != null;
+      el("ahTeams").innerHTML = esc(d.batting) + ' <em>vs</em> ' + esc(d.bowling);
+      el("ahSub").textContent = (d.format || "") + " · " + (chase ? "2nd Innings" : "1st Innings") +
+        (d.overs ? " · " + d.overs + " ov" : "");
+
+      // top tiles
+      el("t1k").textContent = chase ? "Target" : "Projected";
+      roll(el("t1v"), chase ? d.target : d.projected, 0);
+      roll(el("crrV"), d.crr, 2);
+      roll(el("rrrV"), chase ? d.rrr : null, 2);
+
+      // current-innings stats
+      var cur = (d.innings || [])[d.innings_no - 1] || {};
+      el("stats").innerHTML =
+        tile(d.wickets != null ? d.runs + "/" + d.wickets : (cur.total || 0), "Score") +
+        tile(cur.boundaries != null ? cur.boundaries : 0, "Boundaries") +
+        tile(cur.sixes != null ? cur.sixes : 0, "Sixes") +
+        tile(cur.dots != null ? cur.dots : 0, "Dot Balls") +
+        tile(d.wickets != null ? d.wickets : 0, "Wickets") +
+        tile(esc(d.overs || "0.0"), "Overs") +
+        tile(cur.fours != null ? cur.fours : 0, "Fours") +
+        tile(cur.extras != null ? cur.extras : 0, "Extras");
+
+      // wide cards: partnership + powerplay + highest stand
+      var w = [];
+      if (d.partnership && (d.partnership.runs || d.partnership.balls))
+        w.push('<div class="wcard glass"><div class="k">Current Partnership</div><div class="big">' +
+          d.partnership.runs + ' <span style="font-size:.9rem;color:var(--muted)">(' + d.partnership.balls + ')</span></div>' +
+          '<div class="sub">' + esc(d.partnership.a) + " & " + esc(d.partnership.b) + "</div></div>");
+      if (cur.highest_pnr)
+        w.push('<div class="wcard glass"><div class="k">Highest Partnership</div><div class="big">' +
+          cur.highest_pnr.runs + ' <span style="font-size:.9rem;color:var(--muted)">(' + cur.highest_pnr.balls + ')</span></div>' +
+          '<div class="sub">' + esc(cur.highest_pnr.a) + " & " + esc(cur.highest_pnr.b) + "</div></div>");
+      if (cur.powerplay && cur.powerplay.complete)
+        w.push('<div class="wcard glass"><div class="k">Powerplay (' + cur.powerplay.overs + ' ov)</div><div class="big">' +
+          cur.powerplay.runs + "/" + cur.powerplay.wickets + ' <span style="font-size:.9rem;color:var(--muted)">RR ' +
+          rate(cur.powerplay.run_rate) + '</span></div><div class="sub">' + cur.powerplay.boundaries +
+          " boundaries · " + cur.powerplay.sixes + " sixes</div></div>");
+      el("wide").innerHTML = w.join("");
+      el("wide").style.display = w.length ? "" : "none";
+
+      drawWorm(d);
+      mountAnalytics(d);
+      firstDraw = false;
+    }
+
+    async function tick() {
+      try {
+        var r = await fetch("/api/v1/matches/" + MID + "/analysis", { cache: "no-store" });
+        if (!r.ok) return;
+        render(await r.json());
+      } catch (e) { /* keep last frame */ }
+    }
+    tick();
+    setInterval(tick, POLL);
+  })();
+  {% endraw %}</script>
+</body>
+</html>

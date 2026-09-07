@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ m.team_a }} vs {{ m.team_b }} — Scorecard · CricNetra</title>
+  <meta name="robots" content="noindex">
+  <style>
+    :root{
+      --brand:#0c9b54; --brand-dk:#0b7d46; --brand-tint:#e8f7ee;  /* CricNetra brand green (light theme) */
+      --ink:#333333; --muted:#777777; --line:#e6e6e6; --soft:#f5f5f5; --paper:#ffffff;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    html,body{background:#eceff1;color:var(--ink);
+      font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+      font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+    .report{max-width:820px;margin:22px auto;background:var(--paper);padding:34px 38px;
+      box-shadow:0 10px 40px rgba(0,0,0,.12);border-radius:6px}
+    b,strong{font-weight:700}
+    .muted{color:var(--muted)}
+
+    /* ── header ── */
+    .rp-head{display:flex;justify-content:space-between;align-items:flex-start;
+      border-bottom:3px solid var(--brand);padding-bottom:16px}
+    .rp-brand{display:flex;align-items:center;gap:11px}
+    .rp-logo{width:42px;height:42px;border-radius:11px;background:var(--brand);color:#fff;
+      display:grid;place-items:center;font-weight:800;font-size:18px;letter-spacing:.02em}
+    .rp-name{font-size:20px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--brand)}
+    .rp-name span{color:var(--ink)}
+    .rp-tag{font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-top:2px}
+    .rp-head-r{text-align:right}
+    .rp-status{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+      padding:4px 12px;border-radius:20px}
+    .rp-status.done{background:var(--brand-tint);color:var(--brand)}
+    .rp-status.live{background:#fdeaea;color:#c0392b}
+    .rp-doc{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:8px}
+
+    /* ── title band ── */
+    .rp-title{text-align:center;padding:20px 0 6px}
+    .rp-title h1{font-size:26px;font-weight:800;letter-spacing:-.01em}
+    .rp-title h1 span{color:#bbb;font-weight:600;margin:0 6px}
+    .rp-meta{font-size:12px;color:var(--muted);margin-top:5px}
+    .rp-tour{font-size:11px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:var(--brand);margin-bottom:3px}
+
+    /* ── section titles ── */
+    .sec{margin-top:24px}
+    .sec-h{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--brand);
+      padding-bottom:6px;margin-bottom:12px;border-bottom:1.5px solid var(--line)}
+
+    /* ── team score hero ── */
+    .score-hero{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:center;
+      background:var(--soft);border-radius:10px;padding:18px 22px;margin-top:16px}
+    .sh-team{text-align:center}
+    .sh-team .t{font-size:14px;font-weight:800;color:var(--ink)}
+    .sh-team .s{font-size:30px;font-weight:800;color:var(--brand);letter-spacing:-.02em;margin-top:2px}
+    .sh-team .o{font-size:11px;color:var(--muted)}
+    .sh-logo{width:34px;height:34px;object-fit:contain;border-radius:8px;margin:0 auto 4px;display:block;background:#fff}
+    .sh-vs{font-size:12px;font-weight:800;color:var(--muted)}
+    .rp-result{text-align:center;background:var(--brand);color:#fff;border-radius:8px;
+      padding:9px 14px;margin-top:12px;font-size:13.5px;font-weight:700}
+    .rp-toss{text-align:center;font-size:11.5px;color:var(--muted);margin-top:8px}
+
+    /* ── stats dashboard ── */
+    .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .stat{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:11px 13px;text-align:center}
+    .stat .v{font-size:22px;font-weight:800;color:var(--brand);letter-spacing:-.02em}
+    .stat .k{font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:3px}
+    .stat .sub{font-size:10px;color:var(--muted);margin-top:1px}
+
+    /* ── awards ── */
+    .award-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
+    .award{border:1px solid var(--line);border-left:3px solid var(--brand);border-radius:9px;padding:11px 13px;background:var(--paper)}
+    .award .lbl{font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--brand)}
+    .award .who{font-size:14px;font-weight:800;color:var(--ink);margin-top:3px}
+    .award .stat-line{font-size:11px;color:var(--muted);margin-top:1px}
+    .award .emo{float:right;font-size:16px;line-height:1}
+
+    /* ── innings ── */
+    .innings{border:1px solid var(--line);border-radius:11px;padding:16px 18px;margin-bottom:16px;break-inside:avoid;page-break-inside:avoid}
+    .inn-head{display:flex;justify-content:space-between;align-items:baseline;
+      border-bottom:2px solid var(--brand);padding-bottom:8px;margin-bottom:10px}
+    .inn-head .team{font-size:15px;font-weight:800}
+    .inn-head .sup{font-size:9px;font-weight:800;color:#fff;background:#e08a1e;border-radius:12px;padding:2px 8px;margin-left:6px}
+    .inn-head .sc{font-size:16px;font-weight:800;color:var(--brand)}
+    .inn-sub{display:flex;gap:16px;font-size:10.5px;color:var(--muted);margin:-4px 0 12px}
+    .inn-sub b{color:var(--ink)}
+
+    /* ── tables ── */
+    table{width:100%;border-collapse:collapse}
+    thead{display:table-header-group}     /* repeat header if a table spans pages */
+    .tbl{font-size:12px;margin-bottom:6px}
+    .tbl th{background:var(--brand);color:#fff;font-size:9.5px;font-weight:700;letter-spacing:.04em;
+      text-transform:uppercase;text-align:right;padding:6px 8px}
+    .tbl th.l{text-align:left}
+    .tbl td{text-align:right;padding:5px 8px;border-bottom:1px solid #f0f0f0}
+    .tbl td.l{text-align:left}
+    .tbl tbody tr:nth-child(even){background:#f4faf7}
+    .tbl td.name{font-weight:700;color:var(--ink)}
+    .tbl td.b{font-weight:800;color:var(--brand)}
+    .tbl .dis{color:var(--muted);font-size:10.5px}
+    .tbl tfoot td{border-top:1.5px solid var(--brand);border-bottom:0;font-weight:700;padding-top:7px}
+    .tbl tfoot .tot td{font-weight:800;color:var(--brand)}
+    .tbl-lbl{font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:12px 0 4px}
+    .sc-shots-pdf{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:12px;break-inside:avoid;page-break-inside:avoid}
+    .sc-shots-pdf .wagon-host{max-width:180px;margin:0 auto}
+    .sc-shots-pdf .pitch-host{max-width:120px;margin:0 auto}
+
+    /* ── fall of wickets timeline ── */
+    .fow{position:relative;display:flex;flex-wrap:wrap;gap:6px 18px;padding:10px 0 2px;margin-top:6px}
+    .fow-node{position:relative;padding-left:14px;font-size:10.5px}
+    .fow-node::before{content:"";position:absolute;left:0;top:4px;width:7px;height:7px;border-radius:50%;
+      background:var(--brand);box-shadow:0 0 0 2px var(--brand-tint)}
+    .fow-node .s{font-weight:800;color:var(--brand)}
+    .fow-node .b{color:var(--ink)}
+    .fow-node .o{color:var(--muted)}
+
+    /* ── partnership cards ── */
+    .pnr-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:6px}
+    .pnr-c{border:1px solid var(--line);border-radius:9px;padding:9px 11px;background:var(--paper)}
+    .pnr-c.best{border-color:var(--brand);background:var(--brand-tint)}
+    .pnr-c .w{font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+    .pnr-c.best .w{color:var(--brand)}
+    .pnr-c .r{font-size:18px;font-weight:800;color:var(--brand)}
+    .pnr-c .r span{font-size:11px;color:var(--muted);font-weight:600}
+    .pnr-c .p{font-size:10.5px;color:var(--ink);margin-top:2px}
+
+    /* ── ball-by-ball highlights ── */
+    .hl-line{display:flex;align-items:baseline;gap:10px;padding:6px 0;border-bottom:1px solid #f2f2f2;font-size:11.5px}
+    .hl-line .ov{flex:0 0 42px;font-weight:800;color:var(--muted);font-variant-numeric:tabular-nums}
+    .hl-line .tag{flex:0 0 auto;font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+      padding:2px 7px;border-radius:11px;color:#fff}
+    .hl-line.hl-wicket .tag{background:#c0392b}
+    .hl-line.hl-six .tag{background:var(--brand)}
+    .hl-line.hl-four .tag{background:#2f7bbf}
+    .hl-line.hl-fifty .tag,.hl-line.hl-hundred .tag{background:#e08a1e}
+    .hl-line.hl-result .tag{background:var(--brand)}
+    .hl-line .txt{flex:1 1 auto;color:var(--ink)}
+
+    /* ── footer ── */
+    .rp-foot{display:flex;justify-content:space-between;align-items:center;gap:20px;
+      margin-top:26px;padding-top:14px;border-top:2px solid var(--line)}
+    .rf-brand{font-weight:800;color:var(--brand);font-size:13px}
+    .rf-sub{font-size:10.5px;color:var(--muted);margin-top:2px}
+    .rf-sub a{color:var(--brand);text-decoration:none}
+    .rf-qr{text-align:center}
+    .rf-qr svg{width:66px;height:66px}
+    .rf-qr div{font-size:8.5px;color:var(--muted);margin-top:2px;letter-spacing:.04em;text-transform:uppercase}
+
+    @media print{
+      @page{size:A4 portrait;margin:12mm 11mm}
+      html,body{background:#fff}
+      .report{max-width:none;margin:0;padding:0;box-shadow:none;border-radius:0}
+      .innings,.award,.pnr-c,.stat,.score-hero{break-inside:avoid;page-break-inside:avoid}
+      .sec{break-inside:avoid}
+    }
+    @media (max-width:640px){
+      .report{padding:20px}
+      .stat-grid{grid-template-columns:repeat(2,1fr)}
+      .award-grid{grid-template-columns:1fr}
+      .pnr-cards{grid-template-columns:repeat(2,1fr)}
+    }
+  </style>
+</head>
+<body>
+{% set done = m.result is not none %}
+{% set ord = {1:'1st',2:'2nd',3:'3rd'} %}
+<div class="report">
+
+  <!-- HEADER -->
+  <div class="rp-head">
+    <div class="rp-brand">
+      <div class="rp-logo">CN</div>
+      <div>
+        <div class="rp-name">Cric<span>Netra</span></div>
+        <div class="rp-tag">Live cricket scoring · ball by ball</div>
+      </div>
+    </div>
+    <div class="rp-head-r">
+      {% if done %}<span class="rp-status done">🏆 Completed</span>{% else %}<span class="rp-status live">● Live</span>{% endif %}
+      <div class="rp-doc">Match Scorecard Report</div>
+    </div>
+  </div>
+
+  <!-- TITLE -->
+  <div class="rp-title">
+    {% if meta.tournament or meta.match_no %}<div class="rp-tour">{{ meta.tournament or '' }}{% if meta.match_no %}{% if meta.tournament %} · {% endif %}Match {{ meta.match_no }}{% endif %}</div>{% endif %}
+    <h1>{{ m.team_a }} <span>vs</span> {{ m.team_b }}</h1>
+    <div class="rp-meta">{{ m.rules_name }} · {{ m.rules.players_per_side }}-a-side · {{ m.innings[0].max_overs }} overs{% if meta.venue %} · {{ meta.venue }}{% endif %}</div>
+  </div>
+
+  <!-- SCORE HERO -->
+  {% set i0 = m.innings[0] if m.innings|length > 0 else none %}
+  {% set i1 = m.innings[1] if m.innings|length > 1 else none %}
+  {% set logo_first = logo_a if m.bat_first == 'a' else logo_b %}
+  {% set logo_second = logo_b if m.bat_first == 'a' else logo_a %}
+  <div class="score-hero">
+    <div class="sh-team">
+      {% if logo_first %}<img class="sh-logo" src="{{ logo_first }}" alt="" onerror="this.remove()">{% endif %}
+      <div class="t">{{ (i0.batting_team if i0 else m.team_a) }}</div>
+      <div class="s">{{ i0.runs if i0 else 0 }}/{{ i0.wickets if i0 else 0 }}</div>
+      <div class="o">{{ (i0.overs_str if i0 else '0.0') }} overs</div>
+    </div>
+    <div class="sh-vs">VS</div>
+    <div class="sh-team">
+      {% if logo_second %}<img class="sh-logo" src="{{ logo_second }}" alt="" onerror="this.remove()">{% endif %}
+      <div class="t">{{ (i1.batting_team if i1 else (m.team_b if m.bat_first=='a' else m.team_a)) }}</div>
+      <div class="s">{% if i1 %}{{ i1.runs }}/{{ i1.wickets }}{% else %}—{% endif %}</div>
+      <div class="o">{% if i1 %}{{ i1.overs_str }} overs{% else %}yet to bat{% endif %}</div>
+    </div>
+  </div>
+  {% if m.result %}<div class="rp-result">{{ m.result }}</div>{% endif %}
+  <div class="rp-toss">{% if meta.toss_text %}{{ meta.toss_text }} · {% endif %}{{ bat_first_team }} batted first</div>
+
+  <!-- DLS SUMMARY (rain-revised matches) -->
+  {% if m.dls and (m.dls.applied or m.dls.interruptions) %}
+  {% set RL = {'rain':'Rain','bad_light':'Bad light','wet_outfield':'Wet outfield','ground_delay':'Ground delay','power_failure':'Power failure','other':'Interruption'} %}
+  <div class="sec">
+    <div class="sec-h">DLS Summary</div>
+    <div class="stat-grid">
+      <div class="stat"><div class="v">{{ m.dls.original_overs }}</div><div class="k">Original Overs</div></div>
+      <div class="stat"><div class="v">{{ m.dls.revised_overs or m.dls.original_overs }}</div><div class="k">Revised Overs</div></div>
+      <div class="stat"><div class="v">{% if m.dls.revised_target %}{{ m.dls.revised_target }}{% else %}—{% endif %}</div><div class="k">Revised Target</div></div>
+      <div class="stat"><div class="v">{{ m.dls.overs_lost }}</div><div class="k">Overs Lost</div></div>
+    </div>
+    {% if m.dls.interruptions %}
+    <table class="tbl">
+      <thead><tr><th class="l">Interruption</th><th class="l">Innings</th><th class="l">Stopped</th><th class="l">Resumed</th><th>Overs lost</th></tr></thead>
+      <tbody>
+      {% for it in m.dls.interruptions %}
+        <tr><td class="l name">{{ RL.get(it.reason, it.reason) }}</td><td class="l">{{ it.innings }}</td><td class="l">{{ it.interrupt_at or '—' }}</td><td class="l">{{ it.resume_at or ('in progress' if it.pending else '—') }}</td><td class="b">{% if it.pending %}—{% else %}{{ it.overs_lost }}{% endif %}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+    <div class="rp-toss">Method: Duckworth–Lewis–Stern (Standard Edition) · resources {{ m.dls.r1 }}% v {{ m.dls.r2 }}%{% if m.dls.abandoned %} · match abandoned{% endif %}</div>
+  </div>
+  {% endif %}
+
+  <!-- STATS DASHBOARD -->
+  <div class="sec">
+    <div class="sec-h">Match Statistics</div>
+    <div class="stat-grid">
+      <div class="stat"><div class="v">{{ stats.runs }}</div><div class="k">Total Runs</div></div>
+      <div class="stat"><div class="v">{{ stats.wickets }}</div><div class="k">Wickets</div></div>
+      <div class="stat"><div class="v">{{ stats.boundaries }}</div><div class="k">Boundaries</div><div class="sub">{{ stats.fours }}×4 · {{ stats.sixes }}×6</div></div>
+      <div class="stat"><div class="v">{{ stats.sixes }}</div><div class="k">Sixes</div></div>
+      <div class="stat"><div class="v">{{ stats.dots }}</div><div class="k">Dot Balls</div></div>
+      <div class="stat"><div class="v">{{ stats.extras }}</div><div class="k">Extras</div></div>
+      <div class="stat"><div class="v">{{ '%.2f'|format(stats.run_rate) }}</div><div class="k">Run Rate</div></div>
+      <div class="stat"><div class="v">{% if stats.best_partnership %}{{ stats.best_partnership.runs }}{% else %}—{% endif %}</div><div class="k">Best Stand</div>{% if stats.best_partnership %}<div class="sub">{{ ord.get(stats.best_partnership.wicket, (stats.best_partnership.wicket~'th')) }} wkt</div>{% endif %}</div>
+    </div>
+  </div>
+
+  <!-- AWARDS -->
+  {% if awards and awards.man_of_the_match %}
+  <div class="sec">
+    <div class="sec-h">Match Awards</div>
+    <div class="award-grid">
+      <div class="award"><span class="emo">🏆</span><div class="lbl">Man of the Match</div><div class="who">{{ awards.man_of_the_match.name }}</div><div class="stat-line">{{ awards.man_of_the_match.line }}{% if mom_impact %} · Impact {{ mom_impact }}{% endif %}</div></div>
+      {% if awards.best_batter %}<div class="award"><span class="emo">🏏</span><div class="lbl">Highest Run Scorer</div><div class="who">{{ awards.best_batter.name }}</div><div class="stat-line">{{ awards.best_batter.line }}</div></div>{% endif %}
+      {% if awards.best_bowler %}<div class="award"><span class="emo">🎯</span><div class="lbl">Best Bowler</div><div class="who">{{ awards.best_bowler.name }}</div><div class="stat-line">{{ awards.best_bowler.line }}</div></div>{% endif %}
+      {% if stats.best_partnership %}<div class="award"><span class="emo">🤝</span><div class="lbl">Best Partnership</div><div class="who">{{ stats.best_partnership.a }} & {{ stats.best_partnership.b }}</div><div class="stat-line">{{ stats.best_partnership.runs }} runs ({{ stats.best_partnership.balls }}) · {{ stats.best_partnership.team }}</div></div>{% endif %}
+      {% if superlatives.most_sixes %}<div class="award"><span class="emo">💥</span><div class="lbl">Most Sixes</div><div class="who">{{ superlatives.most_sixes.name }}</div><div class="stat-line">{{ superlatives.most_sixes.count }} six{{ 'es' if superlatives.most_sixes.count != 1 else '' }} · {{ superlatives.most_sixes.team }}</div></div>{% endif %}
+      {% if superlatives.most_fours %}<div class="award"><span class="emo">🚀</span><div class="lbl">Most Fours</div><div class="who">{{ superlatives.most_fours.name }}</div><div class="stat-line">{{ superlatives.most_fours.count }} four{{ 's' if superlatives.most_fours.count != 1 else '' }} · {{ superlatives.most_fours.team }}</div></div>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- INNINGS -->
+  <div class="sec">
+    <div class="sec-h">Innings</div>
+    {% for inn in m.innings %}
+    {% set ex = inn_extra[loop.index0] %}
+    {% set best_runs = (inn.partnerships | map(attribute='runs') | max) if inn.partnerships else 0 %}
+    <div class="innings">
+      <div class="inn-head">
+        <div class="team">{{ inn.batting_team }}{% if inn.is_super_over %}<span class="sup">⚡ Super Over</span>{% endif %}</div>
+        <div class="sc">{{ inn.runs }}/{{ inn.wickets }} <span style="font-size:11px;color:#999;font-weight:600">({{ inn.overs_str }} ov)</span></div>
+      </div>
+      <div class="inn-sub">
+        <span>RR <b>{{ '%.2f'|format(inn.run_rate) }}</b></span>
+        <span>Extras <b>{{ inn.extras.total }}</b></span>
+        <span>4s <b>{{ ex.fours }}</b></span>
+        <span>6s <b>{{ ex.sixes }}</b></span>
+        <span>Dots <b>{{ ex.dots }}</b></span>
+      </div>
+
+      <table class="tbl">
+        <thead><tr><th class="l">Batter</th><th class="l"></th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead>
+        <tbody>
+          {% for b in inn.batters if b.has_batted %}
+          <tr><td class="l name">{{ b.name }}</td><td class="l dis">{{ b.dismissal_text if b.out else 'not out' }}</td>
+            <td class="b">{{ b.runs }}</td><td>{{ b.balls }}</td><td>{{ b.fours }}</td><td>{{ b.sixes }}</td><td>{{ '%.1f'|format(b.strike_rate) }}</td></tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr><td class="l" colspan="2">Extras</td><td colspan="5" class="l">{{ inn.extras.total }} (wd {{ inn.extras.wides }}, nb {{ inn.extras.no_balls }}, b {{ inn.extras.byes }}, lb {{ inn.extras.leg_byes }})</td></tr>
+          <tr class="tot"><td class="l" colspan="2">Total</td><td colspan="5" class="l">{{ inn.runs }}/{{ inn.wickets }} ({{ inn.overs_str }} ov, RR {{ '%.2f'|format(inn.run_rate) }})</td></tr>
+        </tfoot>
+      </table>
+
+      <div class="tbl-lbl">Bowling</div>
+      <table class="tbl">
+        <thead><tr><th class="l">Bowler</th><th>O</th><th>M</th><th>R</th><th>W</th><th>Econ</th></tr></thead>
+        <tbody>
+          {% for w in inn.bowlers %}
+          <tr><td class="l name">{{ w.name }}</td><td>{{ w.overs }}</td><td>{{ w.maidens }}</td><td>{{ w.runs }}</td><td class="b">{{ w.wickets }}</td><td>{{ '%.1f'|format(w.economy) }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      {% if inn.fall_of_wickets %}
+      <div class="tbl-lbl">Fall of Wickets</div>
+      <div class="fow">
+        {% for f in inn.fall_of_wickets %}
+        <div class="fow-node"><span class="s">{{ f.score }}-{{ f.wicket }}</span> <span class="b">{{ f.batter_out }}</span> <span class="o">({{ f.over }})</span></div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if inn.partnerships %}
+      <div class="tbl-lbl">Partnerships</div>
+      <div class="pnr-cards">
+        {% for p in inn.partnerships %}
+        <div class="pnr-c{% if p.runs == best_runs and inn.partnerships|length > 1 %} best{% endif %}">
+          <div class="w">{{ ord.get(p.wicket, (p.wicket~'th')) }} wkt{% if p.unbroken %} · not out{% endif %}</div>
+          <div class="r">{{ p.runs }} <span>({{ p.balls }})</span></div>
+          <div class="p">{{ p.batter_a }} &amp; {{ p.batter_b }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      <div class="sc-shots-pdf" data-inn="{{ loop.index0 }}">
+        <div class="sc-shot-pdf"><div class="tbl-lbl">Wagon Wheel</div><div class="wagon-host"></div></div>
+        <div class="sc-shot-pdf"><div class="tbl-lbl">Pitch Map</div><div class="pitch-host"></div></div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- BALL-BY-BALL HIGHLIGHTS -->
+  {% if highlights %}
+  <div class="sec">
+    <div class="sec-h">Key Moments</div>
+    {% for h in highlights %}
+    <div class="hl-line hl-{{ h.kind }}">
+      {% if h.over_ball %}<span class="ov">{{ h.over_ball }}</span>{% else %}<span class="ov"></span>{% endif %}
+      <span class="tag">{{ {'four':'4','six':'6','wicket':'W','fifty':'50','hundred':'100','result':'★'}.get(h.kind, '•') }}</span>
+      <span class="txt"><b>{{ h.title|title }}</b> — {{ h.text }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- FOOTER -->
+  <div class="rp-foot">
+    <div>
+      <div class="rf-brand">CricNetra</div>
+      <div class="rf-sub">Generated <span id="genDate"></span></div>
+      <div class="rf-sub"><a href="{{ live_url }}">{{ live_url }}</a></div>
+    </div>
+    <div class="rf-qr">
+      {{ qr_svg | safe }}
+      <div>Scan for the live scorecard</div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/analytics.js?v=2"></script>
+<script>
+  // mini wagon wheel + pitch map per innings (static SVG, rendered before print)
+  (function () {
+    var SHOTS = {{ shots | tojson }};
+    document.querySelectorAll('.sc-shots-pdf').forEach(function (box) {
+      var s = SHOTS[+box.dataset.inn], wagon = (s && s.wagon) || [], pitch = (s && s.pitch) || [];
+      if (!wagon.length && !pitch.length) { box.style.display = 'none'; return; }
+      if (window.CricWagon && wagon.length) box.querySelector('.wagon-host').innerHTML = CricWagon.svg(wagon);
+      else box.children[0].style.display = 'none';
+      if (window.CricPitch && pitch.length) box.querySelector('.pitch-host').innerHTML = CricPitch.svg(pitch);
+      else box.children[1].style.display = 'none';
+    });
+  })();
+</script>
+<script>
+  (function(){
+    var d=document.getElementById('genDate');
+    if(d){try{d.textContent=new Date().toLocaleString(undefined,{dateStyle:'long',timeStyle:'short'});}catch(e){d.textContent=new Date().toDateString();}}
+    if(new URLSearchParams(location.search).get('print')==='1'){
+      window.addEventListener('load',function(){setTimeout(function(){window.print();},450);});
+    }
+  })();
+</script>
+</body>
+</html>

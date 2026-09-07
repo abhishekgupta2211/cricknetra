@@ -1,0 +1,55 @@
+{% extends "site_base.html" %}
+{% block title %}Match highlights — CricNetra{% endblock %}
+{% block desc %}Watch highlight clips from cricket matches scored on CricNetra — sixes, wickets and match-winning moments, all gathered in one place.{% endblock %}
+
+{% block body %}
+  <section class="page-head">
+    <div class="container">
+      <span class="hero-badge"><span class="dot"></span> {{ clip_total }} clip{{ '' if clip_total == 1 else 's' }} · {{ match_count }} match{{ '' if match_count == 1 else 'es' }}</span>
+      <h1>Match highlights</h1>
+      <p>Every highlight clip from across CricNetra — sixes, wickets and the moments that won the game. Auto-cut from match video or added as YouTube/Facebook links.</p>
+    </div>
+  </section>
+
+  <section class="section dir-section">
+    <div class="container">
+      {% if groups %}
+      {% for g in groups %}
+      <div class="hl-group">
+        <a class="hl-group-head" href="/m/{{ g.id }}">
+          <span class="hlg-main">
+            <span class="mc-fmt">{{ g.format }}</span>
+            {% if g.live %}<span class="badge badge-live">● Live</span>
+            {% elif g.status_label == 'Result' %}<span class="badge badge-done">Result</span>
+            {% else %}<span class="badge badge-soon">Upcoming</span>{% endif %}
+            <span class="hlg-title">{{ g.title }}</span>
+          </span>
+          <span class="hlg-link">Full scorecard →</span>
+        </a>
+        <div class="clip-grid">
+          {% for c in g.clips %}
+          <div class="clip">
+            {% if c.source == 'auto' or c.kind == 'video' %}
+            <div class="stream-embed"><video controls preload="metadata" src="{{ c.url }}"></video></div>
+            {% elif c.embed_url %}
+            <div class="stream-embed"><iframe src="{{ c.embed_url }}" title="{{ c.label or 'Highlight clip' }}" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
+            {% else %}
+            <a class="stream-watch clip-ext" href="{{ c.url }}" target="_blank" rel="noopener noreferrer">Watch clip ↗</a>
+            {% endif %}
+            {% if c.label %}<div class="clip-foot"><span class="clip-label">{{ c.label }}</span></div>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="empty-state">
+        <div class="empty-emo">🎬</div>
+        <h3>No highlights yet</h3>
+        <p>When an organizer adds a highlight clip or auto-cuts a video from a match recording, it shows up here for everyone to watch.</p>
+        <a class="btn btn-primary btn-lg" href="/live-matches">Browse live matches</a>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+{% endblock %}

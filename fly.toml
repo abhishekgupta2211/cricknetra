@@ -1,0 +1,45 @@
+# CricNetra — Fly.io deployment.  Docs: https://fly.io/docs/reference/configuration/
+#
+#   fly apps create <your-unique-name>      # then set `app` below to match
+#   fly secrets set CRICNETRA_SECRET_KEY="..." CRICNETRA_DATABASE_URL="..." \
+#                   CRICNETRA_SMTP_USER="..." CRICNETRA_SMTP_PASSWORD="..." \
+#                   CRICNETRA_SMTP_FROM="..."
+#   fly deploy
+#
+# Postgres: `fly postgres create --region bom` then `fly postgres attach <db>`
+# (that sets DATABASE_URL for you — but this app reads CRICNETRA_DATABASE_URL, so
+# copy it across: `fly secrets set CRICNETRA_DATABASE_URL="$(fly ... )"`). See DEPLOY.md.
+
+app = "cricnetra"          # <-- CHANGE to your unique Fly app name
+primary_region = "bom"     # Mumbai (low latency for Indian users)
+
+[build]
+  dockerfile = "backend/Dockerfile"
+
+# Non-secret config only. Secrets (SECRET_KEY, DATABASE_URL, SMTP_USER/PASSWORD/
+# FROM) go via `fly secrets set` — never put them here.
+[env]
+  CRICNETRA_AUTH_DEV_DELIVERY = "false"
+  CRICNETRA_LOG_FORMAT = "json"
+  CRICNETRA_LOG_LEVEL = "INFO"
+  CRICNETRA_SMTP_HOST = "smtp-relay.brevo.com"
+  CRICNETRA_SMTP_PORT = "587"
+  CRICNETRA_SMTP_STARTTLS = "true"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0   # bump to 1 to avoid cold starts (costs a bit more)
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "20s"
+    method = "GET"
+    path = "/healthz"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

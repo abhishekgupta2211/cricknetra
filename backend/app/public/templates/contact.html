@@ -1,0 +1,61 @@
+{% extends "site_base.html" %}
+{% block title %}Contact — CricNetra{% endblock %}
+{% block desc %}Get in touch with the CricNetra team — feedback, feature requests, partnerships and support.{% endblock %}
+
+{% block body %}
+  <section class="page-head">
+    <div class="container">
+      <span class="hero-badge"><span class="dot"></span> We'd love to hear from you</span>
+      <h1>Get in touch</h1>
+      <p>Feedback, a feature you'd love, a tournament to run, or just a hello — drop us a line and we'll get back to you.</p>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top:54px">
+    <div class="container contact-grid">
+      <div class="contact-card">
+        <span class="eyebrow">Send a message</span>
+        <h2 style="font-size:24px;color:var(--ink);margin:8px 0 20px">How can we help?</h2>
+        <div class="form-ok" id="formOk">✓ Thanks! Your message has been noted — we'll be in touch soon.</div>
+        <form id="contactForm">
+          <div class="field"><label for="name">Your name</label><input id="name" type="text" placeholder="e.g. Rohit Sharma" required /></div>
+          <div class="field"><label for="email">Email</label><input id="email" type="email" placeholder="you@example.com" required /></div>
+          <div class="field"><label for="topic">Topic</label>
+            <select id="topic">
+              <option>General feedback</option>
+              <option>Feature request</option>
+              <option>Report a bug</option>
+              <option>Run a tournament</option>
+              <option>Partnership</option>
+            </select>
+          </div>
+          <div class="field"><label for="msg">Message</label><textarea id="msg" placeholder="Tell us about your cricket…" required></textarea></div>
+          <button class="btn btn-primary btn-lg" type="submit" style="width:100%">Send message</button>
+        </form>
+      </div>
+
+      <div>
+        <span class="eyebrow">Other ways to reach us</span>
+        <h2 style="font-size:24px;color:var(--ink);margin:8px 0 14px">Reach the team</h2>
+        <div class="info-item"><div class="info-ic">✉️</div><div><h4>Email</h4><p><a href="mailto:hello@cricnetra.app">hello@cricnetra.app</a></p></div></div>
+        <div class="info-item"><div class="info-ic">🐞</div><div><h4>Found a bug?</h4><p>Use the form and pick <strong>Report a bug</strong> — please include what you were scoring.</p></div></div>
+        <div class="info-item"><div class="info-ic">🏟️</div><div><h4>Running a tournament?</h4><p>We can help you set up leagues &amp; knockouts. <a href="/app#/tournaments">Start one →</a></p></div></div>
+        <div class="info-item"><div class="info-ic">⚡</div><div><h4>Just want to play?</h4><p><a href="/app">Open CricNetra</a> and score your first match — no sign-up needed.</p></div></div>
+      </div>
+    </div>
+  </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    var form = document.getElementById('contactForm');
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      document.getElementById('formOk').classList.add('show');
+      form.reset();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  })();
+</script>
+{% endblock %}

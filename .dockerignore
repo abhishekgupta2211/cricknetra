@@ -1,0 +1,39 @@
+# Keep the build context small and never bake secrets / local envs into the image.
+**/.venv
+**/venv
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+
+# Secrets & local config — the real values come from runtime env vars.
+**/.env
+.env
+
+# Local SQLite scratch files (alembic offline fallback) and ad-hoc DBs.
+**/*.db
+**/_alembic_tmp.db
+**/_tmp_*.py
+
+# Uploaded recordings + generated highlight clips (runtime data → a volume).
+**/.data
+
+# VCS / tooling / docs not needed at runtime.
+.git
+.github
+.gitignore
+docs
+*.md
+**/.DS_Store
+node_modules
+
+# Test suite + test config — run in CI against the source, never needed in the
+# runtime image (this is the biggest saving: backend/tests is ~2 MB).
+**/tests
+**/pytest.ini
+**/conftest.py
+
+# Env templates — real values come from runtime env vars, not baked-in files.
+**/.env.example

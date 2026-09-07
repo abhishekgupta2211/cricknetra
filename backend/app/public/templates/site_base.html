@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}CricNetra — your cricket matters{% endblock %}</title>
+  <meta name="description" content="{% block desc %}CricNetra makes grassroots cricketers heroes — live scoring, custom rules, tournaments, leaderboards and CricInsights. Free.{% endblock %}" />
+  <meta name="theme-color" content="#080b0a" />
+  <link rel="icon" href="/icon.svg" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="CricNetra" />
+  <meta property="og:title" content="{% block og_title %}{{ self.title() }}{% endblock %}" />
+  <meta property="og:description" content="{{ self.desc() }}" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/landing.css?v=29" />
+  <script>(function(){try{var t=localStorage.getItem('cn_theme');var L=['light','daylight','sandstone','mint','blossom','emerald_light','rose','slate','sand','lavender','sky','sunset'];if(L.indexOf(t)>=0)document.documentElement.classList.add('theme-light');}catch(e){}})();</script>
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+  <header class="nav">
+    <div class="container nav-inner">
+      <button class="nav-burger" id="navBurger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="navLinks">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+      <a class="brand" href="/">
+        <img class="brand-logo" src="/icon.svg?v=89" alt="">
+        <span class="brand-lock">
+          <span class="brand-name">Cric<b>Netra</b></span>
+          <span class="brand-line"></span>
+          <span class="brand-tag">Live cricket scoring · ball by ball</span>
+        </span>
+      </a>
+      <nav class="nav-links" id="navLinks">
+        <a href="/live-matches"{% if active == 'live' %} class="is-active"{% endif %}>Live Scores</a>
+        <a href="/tournaments"{% if active == 'tournaments' %} class="is-active"{% endif %}>Tournaments</a>
+        <a href="/highlights"{% if active == 'highlights' %} class="is-active"{% endif %}>Highlights</a>
+        <a href="/app#/network">Network</a>
+        <a href="/tools"{% if active == 'tools' %} class="is-active"{% endif %}>Tools</a>
+        <a href="/tips"{% if active == 'tips' %} class="is-active"{% endif %}>Tips</a>
+        <a href="/contact"{% if active == 'contact' %} class="is-active"{% endif %}>Contact</a>
+      </nav>
+      <div class="nav-actions">
+        <button class="nav-icon nav-theme" id="themeToggle" type="button" aria-label="Toggle light/dark theme" title="Toggle theme"></button>
+        <a class="nav-icon" href="/app#/search" aria-label="Search" title="Search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7.5" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+        </a>
+        <a class="btn btn-signin" href="/login">Sign in</a>
+        <a class="btn btn-primary" href="/app">Open app →</a>
+      </div>
+    </div>
+  </header>
+
+  {% block body %}{% endblock %}
+
+  <footer class="foot">
+    <div class="container">
+      <div class="foot-top">
+        <div>
+          <a class="brand" href="/">
+            <img class="brand-logo" src="/icon.svg?v=89" alt="">
+            <span class="brand-lock"><span class="brand-name">Cric<b>Netra</b></span><span class="brand-line"></span><span class="brand-tag">Live cricket scoring · ball by ball</span></span>
+          </a>
+          <p class="foot-blurb">The grassroots cricket platform for scoring, tournaments and stats — with custom rules built in. Score your game, build your legend.</p>
+          <a class="btn btn-primary" href="/app">Open the app →</a>
+        </div>
+        <div>
+          <h5>Play</h5>
+          <ul>
+            <li><a href="/live-matches">Live scores</a></li>
+            <li><a href="/tournaments">Tournaments</a></li>
+            <li><a href="/highlights">Highlights</a></li>
+            <li><a href="/app">Score a match</a></li>
+            <li><a href="/app#/leaderboards">Leaderboards</a></li>
+          </ul>
+        </div>
+        <div>
+          <h5>Tools</h5>
+          <ul>
+            <li><a href="/tools">Cricket calculators</a></li>
+            <li><a href="/tools#toss">Online toss</a></li>
+            <li><a href="/tools#wheel">Picker wheel</a></li>
+            <li><a href="/tips">Cricket tips</a></li>
+          </ul>
+        </div>
+        <div>
+          <h5>Company</h5>
+          <ul>
+            <li><a href="/contact">Contact us</a></li>
+            <li><a href="/#features">Features</a></li>
+            <li><a href="/docs">API &amp; docs</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="foot-bottom">
+        <span>© 2026 CricNetra. All rights reserved.</span>
+        <span class="made">Built with <b>FastAPI</b> + <b>PostgreSQL</b> · your cricket matters 🏏</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var burger = document.getElementById('navBurger');
+      var links = document.getElementById('navLinks');
+      function setMenu(open) {
+        links.classList.toggle('open', open);
+        if (burger) burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+      }
+      if (burger) burger.addEventListener('click', function () { setMenu(!links.classList.contains('open')); });
+      if (links) links.addEventListener('click', function (e) {
+        if (e.target.tagName === 'A') setMenu(false);
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') setMenu(false);
+      });
+      // light/dark theme toggle (shares the `cn_theme` key with the app)
+      var SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.4 1.4M17.6 17.6L19 19M19 5l-1.4 1.4M6.4 17.6L5 19"/></svg>';
+      var MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+      var tt = document.getElementById('themeToggle');
+      function paintTT() { if (tt) tt.innerHTML = document.documentElement.classList.contains('theme-light') ? MOON : SUN; }
+      if (tt) tt.addEventListener('click', function () {
+        var light = document.documentElement.classList.toggle('theme-light');
+        try { localStorage.setItem('cn_theme', light ? 'light' : 'dark'); } catch (e) {}
+        paintTT();
+      });
+      paintTT();
+    })();
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

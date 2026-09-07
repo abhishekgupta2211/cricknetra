@@ -1,0 +1,16 @@
+{% extends "site_base.html" %}
+{% block title %}Not found — CricNetra{% endblock %}
+{% block desc %}This page could not be found on CricNetra.{% endblock %}
+
+{% block body %}
+<section class="section detail-section">
+  <div class="container">
+    <div class="empty-state" style="max-width:520px;margin:30px auto">
+      <div class="empty-emo">🏏</div>
+      <h3>{{ what|capitalize }} not found</h3>
+      <p>It may have been deleted, or the link is incorrect.</p>
+      <a class="btn btn-primary btn-lg" href="{{ app_link or '/' }}">Go to CricNetra</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

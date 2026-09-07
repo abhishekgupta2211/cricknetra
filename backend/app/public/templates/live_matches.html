@@ -1,0 +1,50 @@
+{% extends "site_base.html" %}
+{% block title %}Live cricket matches — CricNetra{% endblock %}
+{% block desc %}Follow live and recent cricket matches scored on CricNetra — scores, results and full scorecards.{% endblock %}
+
+{% block body %}
+  <section class="page-head">
+    <div class="container">
+      <span class="hero-badge" data-live-count><span class="dot"></span> {{ live_count }} live now</span>
+      <h1>Live cricket matches</h1>
+      <p>Every match scored on CricNetra — tap any card for the full live scorecard.</p>
+    </div>
+  </section>
+
+  <section class="section dir-section">
+    <div class="container" data-live-region>
+      {% if cards %}
+      <div class="card-grid">
+        {% for m in cards %}
+        <a class="match-card" href="/m/{{ m.id }}">
+          <div class="mc-head">
+            <span class="mc-fmt">{{ m.format }}</span>
+            {% if m.live %}<span class="badge badge-live">● Live</span>
+            {% elif m.status_label == 'Result' %}<span class="badge badge-done">Result</span>
+            {% else %}<span class="badge badge-soon">Upcoming</span>{% endif %}
+            {% if m.streaming %}<span class="badge badge-stream">📺 Stream</span>{% endif %}
+          </div>
+          {% for r in m.rows %}
+          <div class="mc-team {% if r.hl %}is-bat{% endif %}">
+            <span class="mc-name">{{ r.team }}</span>
+            {% if r.batted %}<span class="mc-score">{{ r.score }} <i>({{ r.overs }})</i></span>
+            {% else %}<span class="mc-yet">Yet to bat</span>{% endif %}
+          </div>
+          {% endfor %}
+          <div class="mc-note">{{ m.note }}</div>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <div class="empty-emo">🏏</div>
+        <h3>No matches yet</h3>
+        <p>Be the first — score a match and it'll show up here live.</p>
+        <a class="btn btn-primary btn-lg" href="/app#/new">Score a match</a>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+{% endblock %}
+
+{% block scripts %}<script src="/live-list.js?v=1"></script>{% endblock %}

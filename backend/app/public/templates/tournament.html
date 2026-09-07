@@ -1,0 +1,132 @@
+{% extends "site_base.html" %}
+{% block title %}{{ t.name }} — CricNetra{% endblock %}
+{% block desc %}{{ desc }}{% endblock %}
+
+{% block body %}
+<!-- hero -->
+<section class="tour-hero">
+  <div class="container tour-hero-inner">
+    <div class="th-left">
+      <div class="th-logo" style="background:{{ meta.color }}">{{ meta.initials }}</div>
+      <div class="th-text">
+        <h1>{{ t.name }}</h1>
+        <div class="th-meta">
+          {% if meta.status == 'Ongoing' %}<span class="badge badge-live">● Ongoing</span>
+          {% elif meta.status == 'Completed' %}<span class="badge badge-done">Completed</span>
+          {% else %}<span class="badge badge-soon">Upcoming</span>{% endif %}
+          <span class="th-fmt">{{ meta.fmt }}</span>
+        </div>
+        {% if t.champion %}<div class="th-champ">🏆 Champion: {{ t.champion.name }}</div>{% endif %}
+      </div>
+    </div>
+    <div class="th-stats">
+      <div class="stat-box"><div class="sb-v">{{ meta.total_matches }}</div><div class="sb-k">Total matches</div></div>
+      <div class="stat-box"><div class="sb-v">{{ meta.total_teams }}</div><div class="sb-k">Total teams</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="section detail-section">
+  <div class="container" data-live-region>
+    <!-- tabs -->
+    <div class="tabs">
+      <button class="tab is-active" data-tab="matches">Matches</button>
+      <button class="tab" data-tab="standings">{{ 'Bracket' if t.format == 'knockout' else 'Points table' }}</button>
+      <button class="tab" data-tab="teams">Teams</button>
+    </div>
+
+    <!-- MATCHES -->
+    <div class="tab-panel is-active" data-panel="matches">
+      <div class="filter-pills">
+        <button class="pill is-active" data-filter="all">All</button>
+        <button class="pill" data-filter="live">Live{% if counts.live %} · {{ counts.live }}{% endif %}</button>
+        <button class="pill" data-filter="upcoming">Upcoming</button>
+        <button class="pill" data-filter="completed">Completed</button>
+      </div>
+      {% if cards %}
+      <div class="card-grid">
+        {% for c in cards %}
+        {% if c.id %}<a class="match-card" data-status="{{ c.status }}" href="/m/{{ c.id }}">{% else %}<div class="match-card" data-status="{{ c.status }}">{% endif %}
+          <div class="mc-head">
+            <span class="mc-fmt">{{ c.round_label }}</span>
+            {% if c.status == 'live' %}<span class="badge badge-live">● Live</span>
+            {% elif c.status == 'upcoming' %}<span class="badge badge-soon">Upcoming</span>
+            {% else %}<span class="badge badge-done">{{ c.badge }}</span>{% endif %}
+          </div>
+          {% for r in c.rows %}
+          <div class="mc-team {% if r.hl %}is-bat{% endif %}">
+            <span class="mc-name">{{ r.team }}</span>
+            {% if r.batted %}<span class="mc-score">{{ r.score }} <i>({{ r.overs }})</i></span>
+            {% else %}<span class="mc-yet">{{ 'bye' if r.team == 'bye' else '—' }}</span>{% endif %}
+          </div>
+          {% endfor %}
+          <div class="mc-note">{{ c.note }}</div>
+        {% if c.id %}</a>{% else %}</div>{% endif %}
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state"><div class="empty-emo">📅</div><h3>No fixtures yet</h3><p>Fixtures show up here once the tournament is set up.</p></div>
+      {% endif %}
+    </div>
+
+    <!-- STANDINGS -->
+    <div class="tab-panel" data-panel="standings">
+      {% if t.format == 'groups' %}
+        {% if t.champion %}<div class="champ-banner">🏆 Champion: <b>{{ t.champion.name }}</b></div>{% endif %}
+        {% for g in t.groups %}
+        <div class="table-card">
+          <div class="th-sub" style="font-weight:800;padding:8px 4px">Group {{ g.group }}</div>
+          <table class="sc-table standings">
+            <thead><tr><th class="l">#</th><th class="l">Team</th><th>P</th><th>W</th><th>L</th><th>T</th><th>Pts</th><th>NRR</th></tr></thead>
+            <tbody>
+              {% for s in g.standings %}
+              <tr><td class="l">{{ loop.index }}</td><td class="l name">{{ s.name }}</td><td>{{ s.played }}</td><td>{{ s.won }}</td><td>{{ s.lost }}</td><td>{{ s.tied }}</td><td class="b">{{ s.points }}</td><td>{{ '+' if s.nrr > 0 else '' }}{{ s.nrr }}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endfor %}
+      {% elif t.format == 'round_robin' %}
+        {% if t.standings %}
+        <div class="table-card">
+          <table class="sc-table standings">
+            <thead><tr><th class="l">#</th><th class="l">Team</th><th>P</th><th>W</th><th>L</th><th>T</th><th>Pts</th><th>NRR</th></tr></thead>
+            <tbody>
+              {% for s in t.standings %}
+              <tr><td class="l">{{ loop.index }}</td><td class="l name">{{ s.name }}</td><td>{{ s.played }}</td><td>{{ s.won }}</td><td>{{ s.lost }}</td><td>{{ s.tied }}</td><td class="b">{{ s.points }}</td><td>{{ '+' if s.nrr > 0 else '' }}{{ s.nrr }}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}<div class="empty-state"><div class="empty-emo">📊</div><h3>No results yet</h3><p>The points table fills in as matches are played.</p></div>{% endif %}
+      {% else %}
+        <div class="bracket">
+          {% for rnd, label, fixtures in rounds %}
+          <div class="bracket-round">
+            <div class="br-label">{{ label }}</div>
+            {% for f in fixtures %}
+            <div class="br-fixture">
+              <span class="br-teams">{{ f.team_a.name if f.team_a else 'TBD' }} <i>v</i> {{ f.team_b.name if f.team_b else 'bye' }}</span>
+              <span class="br-res">{{ f.result if f.result else f.status }}</span>
+            </div>
+            {% endfor %}
+          </div>
+          {% endfor %}
+        </div>
+        {% if t.champion %}<div class="champ-banner">🏆 Champion: <b>{{ t.champion.name }}</b></div>{% endif %}
+      {% endif %}
+    </div>
+
+    <!-- TEAMS -->
+    <div class="tab-panel" data-panel="teams">
+      <div class="team-grid">
+        {% for tm in t.teams %}
+        <div class="team-chip"><span class="tc-av" style="background:{{ meta.color }}">{{ tm.name[:2]|upper }}</span><span>{{ tm.name }}</span></div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}<script src="/site.js?v=2"></script><script src="/live-list.js?v=1"></script>{% endblock %}

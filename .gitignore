@@ -1,0 +1,84 @@
+# ─── Secrets ────────────────────────────────────────────────────────────────
+# Never commit a real .env. `.env.example` is the template that gets shared.
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+*.pem
+*.key
+vapid.json
+backend/.data/vapid.json
+
+# ─── Python ─────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtualenvs. Both spellings — this repo's is `backend/venv`, and getting the
+# name wrong once put 6,775 library files in a commit.
+.venv/
+venv/
+backend/.venv/
+backend/venv/
+ENV/
+
+# ─── Node / Next ────────────────────────────────────────────────────────────
+node_modules/
+.next/
+out/
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ─── Flutter / Dart ─────────────────────────────────────────────────────────
+mobile/build/
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.packages
+mobile/android/.gradle/
+mobile/android/.kotlin/
+mobile/android/local.properties
+mobile/android/app/debug/
+mobile/android/app/profile/
+mobile/android/app/release/
+mobile/ios/Flutter/Generated.xcconfig
+mobile/ios/Flutter/flutter_export_environment.sh
+mobile/ios/Flutter/ephemeral/
+mobile/ios/Pods/
+mobile/macos/Flutter/ephemeral/
+mobile/linux/flutter/ephemeral/
+mobile/windows/flutter/ephemeral/
+mobile/.idea/
+*.apk
+*.aab
+*.ipa
+
+# ─── Runtime data ───────────────────────────────────────────────────────────
+# Uploaded photos, recorded clips and other user content the app writes.
+backend/.data/
+*.db
+*.sqlite
+*.sqlite3
+
+# ─── Test & tooling artifacts ───────────────────────────────────────────────
+test-results/
+e2e/test-results/
+e2e/.pytest_cache/
+.last-run.json
+coverage/
+htmlcov/
+.coverage
+
+# ─── Editors / OS ───────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

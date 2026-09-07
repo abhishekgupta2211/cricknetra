@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "cricnetra",
+      "runtimeExecutable": "D:/CricNetra/backend/.venv/Scripts/python.exe",
+      "runtimeArgs": ["-m", "uvicorn", "app.main:app", "--app-dir", "backend", "--host", "127.0.0.1", "--port", "8023"],
+      "port": 8023
+    },
+    {
+      "name": "cricnetra-demo",
+      "runtimeExecutable": "D:/CricNetra/backend/.venv/Scripts/python.exe",
+      "runtimeArgs": ["-m", "uvicorn", "app.main:app", "--app-dir", "backend", "--host", "127.0.0.1", "--port", "8029"],
+      "port": 8029,
+      "env": {
+        "CRICNETRA_DATABASE_URL": "",
+        "CRICNETRA_SEED_ADMIN": "demoadmin:demo1234",
+        "CRICNETRA_AUTH_DEV_DELIVERY": "true",
+        "CRICNETRA_MEDIA_DIR": "C:/Users/pc/AppData/Local/Temp/claude/D--CricNetra/7380274a-3f32-4ee1-acd5-9ccb54e8f22f/scratchpad/demomedia"
+      }
+    }
+  ]
+}

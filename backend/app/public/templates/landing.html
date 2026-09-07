@@ -1,0 +1,155 @@
+{% extends "site_base.html" %}
+{% block title %}CricNetra — score your cricket, by your rules{% endblock %}
+{% block desc %}CricNetra makes grassroots cricketers heroes — one ball at a time. Ball-by-ball live scoring, custom rules, leagues & knockouts, leaderboards and CricInsights. Free.{% endblock %}
+
+{% block body %}
+  <!-- HERO -->
+  <section class="hero">
+    <div class="container hero-inner">
+      <div class="hero-text">
+        <span class="hero-badge"><span class="dot"></span> Free forever · No sign-up to start</span>
+        <a class="hero-live" id="heroLive" href="/live-matches" hidden><span class="pulse"></span> <b id="liveCount">0</b> live now →</a>
+        <h1>We make grassroots cricketers <span class="hl">heroes</span> — one ball at a time.</h1>
+        <p class="hero-sub">
+          Score every ball, run your leagues and knockouts, and turn your matches into
+          career stats and shareable scorecards — all by <strong>your</strong> rules.
+        </p>
+        <div class="hero-cta">
+          <a class="btn btn-white btn-lg" href="/app">Start scoring free</a>
+          <a class="btn btn-live btn-lg" href="/live-matches"><span class="btn-live-dot"></span> Watch live</a>
+          <a class="btn btn-outline-light btn-lg" href="#features">See features</a>
+        </div>
+        <div class="hero-trust">
+          <span><span class="ck">✓</span> Ball-by-ball with undo</span>
+          <span><span class="ck">✓</span> Custom rules &amp; formats</span>
+          <span><span class="ck">✓</span> Live NRR &amp; net stats</span>
+        </div>
+      </div>
+
+      <div class="device-wrap">
+        <div class="device">
+          <div class="dv-float f1"><span class="emo">🏆</span><span>MVP<small id="floatMvp">Rohit S. · 412 pts</small></span></div>
+          <div class="dv-float f2"><span class="emo">📈</span><span id="floatRates">CRR 8.6<small>RRR 9.1</small></span></div>
+          <div class="device-screen">
+            <div class="dv-top">
+              <div class="dv-row"><span class="dv-team" id="dvTeam">Royal Strikers</span><span class="dv-score" id="dvScore">142/4</span></div>
+              <div class="dv-meta" id="dvMeta"><span>16.2 overs</span><span>Target 168</span></div>
+            </div>
+            <div class="dv-body">
+              <div class="dv-card">
+                <h4>Batting</h4>
+                <div id="dvBat">
+                  <div class="dv-line"><span class="on">Rohit ★</span><b>58 (32)</b></div>
+                  <div class="dv-line"><span>Pandya</span><b>24 (11)</b></div>
+                </div>
+              </div>
+              <div class="dv-card">
+                <h4>Bowling</h4>
+                <div id="dvBowl"><div class="dv-line"><span>Bumrah</span><b>2/28 (3.2)</b></div></div>
+              </div>
+              <div class="dv-card">
+                <h4>This over</h4>
+                <div class="dv-chips" id="dvOver">
+                  <span class="dv-chip">1</span>
+                  <span class="dv-chip r4">4</span>
+                  <span class="dv-chip">·</span>
+                  <span class="dv-chip r6">6</span>
+                  <span class="dv-chip w">W</span>
+                  <span class="dv-chip">2</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STRIP -->
+  <div class="strip">
+    <div class="container strip-inner">
+      <span class="strip-item"><span class="emo">🎯</span> <span>Box, gully, indoor or league — <b>your rules</b></span></span>
+      <span class="strip-item"><span class="emo">⚡</span> <span>Set up a match in <b>under a minute</b></span></span>
+      <span class="strip-item"><span class="emo">🔗</span> <span>Share a live scorecard with <b>one tap</b></span></span>
+    </div>
+  </div>
+
+  <!-- FEATURES -->
+  <section class="section" id="features">
+    <div class="container">
+      <div class="sec-head reveal">
+        <span class="eyebrow">Everything in one place</span>
+        <h2>One app to run your whole cricket</h2>
+        <p>From the first ball of a gully game to the trophy of a 16-team knockout — CricNetra has every step covered.</p>
+      </div>
+      <div class="feat-grid">
+        <a class="feat-card reveal" href="/app#/new"><span class="feat-num">01</span><div class="feat-ic">📲</div><h3>Live scoring</h3><p>Tap ball-by-ball — runs, extras, wickets — with instant undo. The full match is replayable, so nothing is ever lost.</p></a>
+        <a class="feat-card reveal" href="/live-matches"><span class="feat-num">02</span><div class="feat-ic">📋</div><h3>Pro scorecard</h3><p>Batting, bowling, extras, fall of wickets and partnerships — a clean, professional card for every innings.</p></a>
+        <a class="feat-card reveal" href="/app#/rules"><span class="feat-num">03</span><div class="feat-ic">🎛️</div><h3>Custom rules</h3><p>Overs, players, ball type and special laws like <strong>rule-out</strong> (a full-toss six = out). Save your own presets.</p></a>
+        <a class="feat-card reveal" href="/tournaments"><span class="feat-num">04</span><div class="feat-ic">🏆</div><h3>Tournaments</h3><p>Round-robin leagues with a live points table &amp; NRR, or progressive knockouts with auto-generated brackets.</p></a>
+        <a class="feat-card reveal" href="/app#/teams"><span class="feat-num">05</span><div class="feat-ic">👥</div><h3>Teams &amp; players</h3><p>Build squads, manage rosters and keep a profile for every player with batting and bowling styles.</p></a>
+        <a class="feat-card reveal" href="/app#/leaderboards"><span class="feat-num">06</span><div class="feat-ic">🥇</div><h3>Leaderboards</h3><p>Most runs, wickets, fours, catches, best bowling, highest score — and an all-rounder <strong>MVP</strong> ranking.</p></a>
+        <a class="feat-card reveal" href="/app#/compare"><span class="feat-num">07</span><div class="feat-ic">📊</div><h3>CricInsights</h3><p>Dot-ball &amp; boundary %, how you get out, wickets-by-type, and head-to-head player comparisons.</p></a>
+        <a class="feat-card reveal" href="/live-matches"><span class="feat-num">08</span><div class="feat-ic">🔗</div><h3>Public pages</h3><p>Every match and tournament gets a shareable web link with live score, scorecard and result — no app needed to view.</p></a>
+        <a class="feat-card feat-wide reveal" href="/highlights"><span class="feat-num">09</span><div class="feat-ic">🎬</div><div class="fw-text"><h3>Highlights</h3><p>Sixes, wickets and match-winning moments — auto-cut from the match video or added as YouTube/Facebook clips, all gathered on one shareable highlights page.</p></div><span class="fw-cta">Watch highlights →</span></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- SHOWCASE -->
+  <section class="showcase">
+    <div class="container showcase-inner">
+      <div class="reveal">
+        <span class="eyebrow">Stats that mean something</span>
+        <h2>Turn every match into a career.</h2>
+        <p>CricNetra remembers every ball you ever score. Careers, leaderboards and insights are built straight from the match log — accurate, and always up to date.</p>
+        <ul class="checklist">
+          <li><span class="ck">✓</span> Career batting &amp; bowling with averages, strike rate and economy</li>
+          <li><span class="ck">✓</span> Net run rate done right — all-out counts the full quota of overs</li>
+          <li><span class="ck">✓</span> MVP rankings that reward all-rounders, fielders and finishers</li>
+          <li><span class="ck">✓</span> Compare any two players head-to-head, side by side</li>
+        </ul>
+        <a class="btn btn-primary btn-lg" href="/app#/leaderboards">Explore leaderboards →</a>
+      </div>
+      <div class="showcase-art reveal">
+        <span class="eyebrow" style="color:#d9ffe6">⭐ MVP leaderboard</span>
+        <div class="mini-board" id="mvpBoard" style="margin-top:14px">
+          <div class="mb-rank"><span class="mb-medal g">1</span><span class="mb-name">Rohit Sharma <span class="mb-sub">· 6 matches</span></span><span class="mb-val">412</span></div>
+          <div class="mb-rank"><span class="mb-medal s">2</span><span class="mb-name">Hardik Pandya <span class="mb-sub">· 6 matches</span></span><span class="mb-val">388</span></div>
+          <div class="mb-rank"><span class="mb-medal b">3</span><span class="mb-name">J. Bumrah <span class="mb-sub">· 5 matches</span></span><span class="mb-val">351</span></div>
+          <div class="mb-rank"><span class="mb-medal">4</span><span class="mb-name">V. Kohli <span class="mb-sub">· 6 matches</span></span><span class="mb-val">329</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NUMBERS -->
+  <section class="numbers">
+    <div class="container numbers-inner">
+      <h2>CricNetra in numbers</h2>
+      <p class="sub">Built for every kind of cricket, from the backyard to the box league.</p>
+      <div class="num-grid">
+        <div class="num reveal" id="numMatches" data-count="6" data-suffix="+"><div class="v">6+</div><div class="l">Matches scored</div></div>
+        <div class="num reveal" id="numPlayers" data-count="13"><div class="v">13</div><div class="l">Players tracked</div></div>
+        <div class="num reveal" id="numTeams" data-count="8"><div class="v">8</div><div class="l">Teams created</div></div>
+        <div class="num reveal" data-count="100" data-suffix="%"><div class="v">100%</div><div class="l">Free, every feature</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-band">
+    <div class="container">
+      <div class="cta-card reveal">
+        <h2>Ready to be the hero of your match?</h2>
+        <p>No sign-up needed to start scoring. Open CricNetra, pick your rules, and let the first ball fly.</p>
+        <div class="cta-actions">
+          <a class="btn btn-white btn-lg" href="/app">Start scoring free</a>
+          <a class="btn btn-outline-light btn-lg" href="/contact">Talk to us</a>
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}
+
+{% block scripts %}<script src="/landing.js?v=7"></script>{% endblock %}

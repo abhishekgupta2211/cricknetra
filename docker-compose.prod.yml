@@ -1,0 +1,37 @@
+# CricNetra — production overlay. Adds Caddy in front of the app for automatic
+# HTTPS (Let's Encrypt) and stops exposing the app port directly to the internet.
+#
+#   # DNS for $DOMAIN must point at this host first, then:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Caddy obtains + renews certs automatically. Requires DOMAIN + LETSENCRYPT_EMAIL
+# in .env. See DEPLOY.md.
+
+services:
+  app:
+    # Caddy is the only thing exposed publicly; the app is reachable only on the
+    # internal compose network. (Empty list clears the base file's port mapping.)
+    ports: []
+    expose:
+      - "8000"
+
+  caddy:
+    image: caddy:2-alpine
+    depends_on:
+      - app
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:?set LETSENCRYPT_EMAIL in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data       # persisted certs — don't lose this volume
+      - caddy_config:/config
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

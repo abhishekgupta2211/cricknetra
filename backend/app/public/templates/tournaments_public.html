@@ -1,0 +1,55 @@
+{% extends "site_base.html" %}
+{% block title %}Cricket tournaments — CricNetra{% endblock %}
+{% block desc %}Browse cricket leagues and knockouts run on CricNetra — points tables, brackets, NRR and champions.{% endblock %}
+
+{% block body %}
+  <section class="page-head">
+    <div class="container">
+      <span class="hero-badge"><span class="dot"></span> {{ ongoing_count }} ongoing</span>
+      <h1>Cricket tournaments</h1>
+      <p>Leagues and knockouts run on CricNetra — tap any cup for its points table, bracket and champion.</p>
+    </div>
+  </section>
+
+  <section class="section dir-section">
+    <div class="container dir-layout">
+      <aside class="dir-side">
+        <div class="side-cta">
+          <h3>Organising a tournament?</h3>
+          <p>Spin up a round-robin league or a knockout cup in minutes — fixtures, live points table and NRR are all automatic.</p>
+          <a class="btn btn-primary" href="/app#/tournaments">Create a tournament</a>
+          <a class="side-link" href="/tips">Read the cricket tips →</a>
+        </div>
+      </aside>
+
+      <div class="dir-main">
+        {% if cards %}
+        <div class="card-grid">
+          {% for t in cards %}
+          <a class="tour-card" href="/t/{{ t.id }}">
+            <div class="tc-logo" style="background:{{ t.color }}">{{ t.initials }}</div>
+            <div class="tc-body">
+              <div class="tc-badges">
+                {% if t.status == 'Ongoing' %}<span class="badge badge-live">● Ongoing</span>
+                {% elif t.status == 'Completed' %}<span class="badge badge-done">Completed</span>
+                {% else %}<span class="badge badge-soon">Upcoming</span>{% endif %}
+                <span class="badge badge-fmt">{{ t.fmt }}</span>
+              </div>
+              <h3 class="tc-name">{{ t.name }}</h3>
+              <div class="tc-meta">👥 {{ t.teams }} teams{% if t.note %} · {{ t.note }}{% endif %}</div>
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <div class="empty-emo">🏆</div>
+          <h3>No tournaments yet</h3>
+          <p>Create the first league or knockout — it'll appear here for everyone to follow.</p>
+          <a class="btn btn-primary btn-lg" href="/app#/tournaments">Create a tournament</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+{% endblock %}

@@ -1,0 +1,288 @@
+{% extends "site_base.html" %}
+{% set inn = m.innings[m.current_innings - 1] %}
+{% set live = m.result is none %}
+{% set bat_first_team = m.team_a if m.bat_first == 'a' else m.team_b %}
+{% block title %}{{ m.team_a }} vs {{ m.team_b }} — CricNetra{% endblock %}
+{% block desc %}{{ desc }}{% endblock %}
+{% block og_title %}{{ m.team_a }} vs {{ m.team_b }}{% endblock %}
+
+{% block body %}
+<section class="section detail-section">
+  <div class="container">
+    <a class="back-link" href="/live-matches">← All matches</a>
+
+    <div class="match-layout">
+      <div class="match-main">
+        <!-- print letterhead (only on the PDF export) -->
+        <div class="print-only print-head">
+          <div class="ph-brand">CRIC<span>NETRA</span></div>
+          <div class="ph-sub">Match Scorecard</div>
+          <div class="ph-teams">{{ m.team_a }} <span>vs</span> {{ m.team_b }}</div>
+          <div class="ph-meta">{{ m.rules_name }} · {{ bat_first_team }} batted first{% if m.result %} · {{ m.result }}{% endif %}</div>
+        </div>
+
+        <!-- header -->
+        <div class="mh-card">
+          <div class="mh-top">
+            <span class="mh-fmt">{{ m.rules_name }}</span>
+            {% if live %}<span class="badge badge-live">● Live</span>{% else %}<span class="badge badge-done">Result</span>{% endif %}
+            <button class="mh-share" data-share title="Share">🔗</button>
+          </div>
+          <div class="mh-toss">{{ bat_first_team }} batted first</div>
+          {% for r in rows %}
+          <div class="mh-team {% if r.hl %}is-bat{% endif %}">
+            <span class="mh-name">{{ r.team }}</span>
+            {% if r.batted %}<span class="mh-score">{{ r.score }} <i>({{ r.overs }} ov)</i></span>
+            {% else %}<span class="mh-yet">Yet to bat</span>{% endif %}
+          </div>
+          {% endfor %}
+          <div class="mh-note">{% if m.result %}{{ m.result }}{% elif inn.result_note %}{{ inn.result_note }}{% else %}{{ inn.batting_team }} batting{% endif %}</div>
+        </div>
+
+        <!-- tabs -->
+        <div class="tabs">
+          <button class="tab is-active" data-tab="live">Live</button>
+          <button class="tab" data-tab="highlights">Highlights</button>
+          <button class="tab" data-tab="scorecard">Scorecard</button>
+          <button class="tab" data-tab="commentary">Commentary{% if commentary %} ({{ commentary|length }}){% endif %}</button>
+        </div>
+
+        <!-- LIVE -->
+        <div class="tab-panel is-active" data-panel="live">
+          {% if m.stream %}
+          <div class="sc-card stream-card">
+            <div class="sc-h">📺 Live stream</div>
+            {% if m.stream.embed_url %}
+            <div class="stream-embed"><iframe src="{{ m.stream.embed_url }}" title="Live stream" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
+            {% else %}
+            <a class="stream-watch" href="{{ m.stream.url }}" target="_blank" rel="noopener noreferrer">Watch the live stream ↗</a>
+            {% endif %}
+          </div>
+          {% endif %}
+          {% if m.awards and m.awards.man_of_the_match %}
+          <div class="sc-card award-card">
+            <div class="sc-h">🏅 Match awards</div>
+            <div class="award-row"><span class="award-emo">⭐</span><div><div class="award-label">Player of the Match</div><b>{{ m.awards.man_of_the_match.name }}</b> <span class="muted-line">{{ m.awards.man_of_the_match.line }}</span></div></div>
+            {% if m.awards.best_batter %}<div class="award-row"><span class="award-emo">🏏</span><div><div class="award-label">Best batter</div><b>{{ m.awards.best_batter.name }}</b> <span class="muted-line">{{ m.awards.best_batter.line }}</span></div></div>{% endif %}
+            {% if m.awards.best_bowler %}<div class="award-row"><span class="award-emo">🎯</span><div><div class="award-label">Best bowler</div><b>{{ m.awards.best_bowler.name }}</b> <span class="muted-line">{{ m.awards.best_bowler.line }}</span></div></div>{% endif %}
+          </div>
+          {% endif %}
+          {% set crease = inn.batters | selectattr('name', 'in', [inn.striker, inn.non_striker]) | list %}
+          <div class="sc-card">
+            <div class="sc-h">At the crease</div>
+            {% if crease %}
+            <table class="sc-table">
+              <thead><tr><th class="l">Batter</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead>
+              <tbody>
+                {% for b in crease %}
+                <tr><td class="l">{{ b.name }}{% if b.on_strike %} <span class="strike-dot">●</span>{% endif %}</td>
+                  <td class="b">{{ b.runs }}</td><td>{{ b.balls }}</td><td>{{ b.fours }}</td><td>{{ b.sixes }}</td>
+                  <td>{{ '%.1f'|format(b.strike_rate) }}</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            {% else %}<p class="muted-line">Innings yet to begin.</p>{% endif %}
+          </div>
+
+          {% set bowl = inn.bowlers | selectattr('name', 'equalto', inn.bowler) | list %}
+          {% if bowl %}
+          <div class="sc-card">
+            <div class="sc-h">Bowling</div>
+            <table class="sc-table">
+              <thead><tr><th class="l">Bowler</th><th>O</th><th>M</th><th>R</th><th>W</th><th>Econ</th></tr></thead>
+              <tbody>{% for w in bowl %}<tr><td class="l">{{ w.name }} <span class="strike-dot">●</span></td><td>{{ w.overs }}</td><td>{{ w.maidens }}</td><td>{{ w.runs }}</td><td class="b">{{ w.wickets }}</td><td>{{ '%.1f'|format(w.economy) }}</td></tr>{% endfor %}</tbody>
+            </table>
+          </div>
+          {% endif %}
+
+          <div class="live-strip">
+            {% set pr = inn.runs - (inn.fall_of_wickets[-1].score if inn.fall_of_wickets else 0) %}
+            <div class="ls-item"><span class="ls-k">Partnership</span><span class="ls-v">{{ pr }} run{{ '' if pr == 1 else 's' }}</span></div>
+            <div class="ls-item"><span class="ls-k">This over</span>
+              <span class="over-balls">{% for s in inn.this_over %}<span class="ob-chip">{{ s }}</span>{% else %}<span class="muted-line">—</span>{% endfor %}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- HIGHLIGHTS -->
+        <div class="tab-panel" data-panel="highlights">
+          {% if clips %}
+          <div class="clip-grid">
+            {% for c in clips %}
+            <div class="clip">
+              {% if c.source == 'auto' or c.kind == 'video' %}
+              <div class="stream-embed"><video controls preload="metadata" src="{{ c.url }}"></video></div>
+              {% elif c.embed_url %}
+              <div class="stream-embed"><iframe src="{{ c.embed_url }}" title="{{ c.label or 'Highlight clip' }}" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
+              {% else %}
+              <a class="stream-watch clip-ext" href="{{ c.url }}" target="_blank" rel="noopener noreferrer">Watch clip ↗</a>
+              {% endif %}
+              {% if c.label %}<div class="clip-foot"><span class="clip-label">{{ c.label }}</span></div>{% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+          {% if highlights %}
+          {% set ns = namespace(inn='') %}
+          {% for hlt in highlights %}
+            {% if hlt.innings != ns.inn %}{% set ns.inn = hlt.innings %}<div class="hl-inn">{{ hlt.innings }}</div>{% endif %}
+            <div class="hl-item hl-{{ hlt.kind }}">
+              <span class="hl-badge">{{ {'wicket':'W','six':'6','four':'4','fifty':'50','hundred':'100','bowling':'🎯','innings':'▪','dls':'☔','result':'🏆'}.get(hlt.kind, '•') }}</span>
+              <div class="hl-body"><b>{{ hlt.title }}</b> <span class="hl-txt">{{ hlt.text }}</span>{% if hlt.over_ball %}<span class="hl-ov">{{ hlt.over_ball }}</span>{% endif %}</div>
+            </div>
+          {% endfor %}
+          {% else %}
+          <p class="muted-line">Highlights will appear as the match is scored.</p>
+          {% endif %}
+        </div>
+
+        <!-- SCORECARD -->
+        <div class="tab-panel" data-panel="scorecard">
+          {% for innx in m.innings %}
+          <div class="sc-card">
+            <div class="sc-inn-head"><h3>{{ innx.batting_team }}{% if innx.is_super_over %} <span style="display:inline-block;font-size:11px;font-weight:800;background:#ff9f1c;color:#3a2400;padding:2px 9px;border-radius:20px;vertical-align:middle">⚡ Super Over</span>{% endif %}</h3><div class="sc-inn-score">{{ innx.runs }}/{{ innx.wickets }} <span>({{ innx.overs_str }} ov)</span></div></div>
+            <table class="sc-table">
+              <thead><tr><th class="l">Batter</th><th class="l"></th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead>
+              <tbody>
+                {% for b in innx.batters if b.has_batted %}
+                <tr><td class="l name">{{ b.name }}</td><td class="l dismiss">{{ b.dismissal_text if b.out else 'not out' }}</td>
+                  <td class="b">{{ b.runs }}</td><td>{{ b.balls }}</td><td>{{ b.fours }}</td><td>{{ b.sixes }}</td><td>{{ '%.1f'|format(b.strike_rate) }}</td></tr>
+                {% endfor %}
+              </tbody>
+              <tfoot>
+                <tr><td colspan="2" class="l">Extras</td><td colspan="5" class="l">{{ innx.extras.total }} (wd {{ innx.extras.wides }}, nb {{ innx.extras.no_balls }}, b {{ innx.extras.byes }}, lb {{ innx.extras.leg_byes }})</td></tr>
+                <tr class="total"><td colspan="2" class="l">Total</td><td colspan="5" class="l">{{ innx.runs }}/{{ innx.wickets }} ({{ innx.overs_str }} ov)</td></tr>
+              </tfoot>
+            </table>
+            {% if innx.fall_of_wickets %}<p class="fow"><b>Fall:</b> {% for f in innx.fall_of_wickets %}{{ f.score }}-{{ f.wicket }} ({{ f.batter_out }}, {{ f.over }}){% if not loop.last %} · {% endif %}{% endfor %}</p>{% endif %}
+            {% if innx.partnerships %}
+            <div class="pnr-public">
+              <div class="pnr-head">Partnerships</div>
+              {% for p in innx.partnerships %}
+              <div class="pnr-row"><span class="pnr-wkt">{{ {1:'1st', 2:'2nd', 3:'3rd'}.get(p.wicket, p.wicket ~ 'th') }}</span><span class="pnr-names">{{ p.batter_a }} &amp; {{ p.batter_b }}{% if p.unbroken %} <span class="pnr-unb">not out</span>{% endif %}</span><span class="pnr-runs">{{ p.runs }} <span class="pnr-b">({{ p.balls }})</span></span></div>
+              {% endfor %}
+            </div>
+            {% endif %}
+            <table class="sc-table">
+              <thead><tr><th class="l">Bowler</th><th>O</th><th>M</th><th>R</th><th>W</th><th>Econ</th></tr></thead>
+              <tbody>{% for w in innx.bowlers %}<tr><td class="l">{{ w.name }}</td><td>{{ w.overs }}</td><td>{{ w.maidens }}</td><td>{{ w.runs }}</td><td class="b">{{ w.wickets }}</td><td>{{ '%.1f'|format(w.economy) }}</td></tr>{% endfor %}</tbody>
+            </table>
+            <div class="sc-shots" data-inn="{{ loop.index0 }}" hidden>
+              <div class="sc-shot"><div class="sc-shot-h">Wagon Wheel</div><div class="wagon-host"></div></div>
+              <div class="sc-shot"><div class="sc-shot-h">Pitch Map</div><div class="pitch-host"></div></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <!-- COMMENTARY -->
+        <div class="tab-panel" data-panel="commentary">
+          {% if commentary %}
+          <div class="sc-card">
+            <div class="sc-h">📢 Commentator notes</div>
+            <ul class="comm-feed">
+              {% for c in commentary %}
+              <li class="comm-line"><span class="comm-who">{{ c.author_name }}</span><span class="comm-text">{{ c.text }}</span></li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+          <div class="sc-card">
+            <div class="sc-h">📻 Ball by ball</div>
+            {% if ball_feed %}
+            <div class="bbl-list">
+              {% for b in ball_feed %}
+              <div class="bbl-row"><span class="bbl-ov">{{ b.over_ball }}</span><span class="bbl-badge bbl-{{ b.kind }}">{{ {'wicket':'W','four':'4','six':'6','wide':'wd','noball':'nb','bye':'b','legbye':'lb','dot':'•'}.get(b.kind, b.runs) }}</span><span class="bbl-text">{{ b.text }}</span></div>
+              {% endfor %}
+            </div>
+            {% else %}<p class="muted-line">Ball-by-ball will appear here as the match is scored.</p>{% endif %}
+          </div>
+        </div>
+
+        <!-- print-only awards + footer (awards live in the Live tab, hidden on the PDF) -->
+        {% if m.awards and m.awards.man_of_the_match %}
+        <div class="print-only print-awards">
+          <div class="pa-title">Awards</div>
+          <div class="pa-row"><span class="pa-k">Player of the Match</span><span class="pa-v"><b>{{ m.awards.man_of_the_match.name }}</b> — {{ m.awards.man_of_the_match.line }}</span></div>
+          {% if m.awards.best_batter %}<div class="pa-row"><span class="pa-k">Best batter</span><span class="pa-v"><b>{{ m.awards.best_batter.name }}</b> — {{ m.awards.best_batter.line }}</span></div>{% endif %}
+          {% if m.awards.best_bowler %}<div class="pa-row"><span class="pa-k">Best bowler</span><span class="pa-v"><b>{{ m.awards.best_bowler.name }}</b> — {{ m.awards.best_bowler.line }}</span></div>{% endif %}
+        </div>
+        {% endif %}
+        <div class="print-only print-foot">
+          <span>Generated by <b>CricNetra</b> — your cricket matters 🏏</span>
+          <span class="pf-date" id="pfDate"></span>
+        </div>
+      </div>
+
+      <!-- sidebar -->
+      <aside class="match-side">
+        <div class="side-box">
+          <div class="sb-label">Current run rate</div>
+          <div class="sb-big">{{ '%.2f'|format(inn.run_rate) }}</div>
+          {% if inn.target and not inn.is_complete %}
+          <div class="sb-row"><span>Target</span><b>{{ inn.target }}</b></div>
+          <div class="sb-row"><span>Need</span><b>{{ inn.required_runs }} off {{ inn.balls_remaining }}</b></div>
+          {% if inn.required_run_rate is not none %}<div class="sb-row"><span>Req. rate</span><b>{{ '%.2f'|format(inn.required_run_rate) }}</b></div>{% endif %}
+          {% endif %}
+          {% if inn.in_powerplay %}<div class="sb-pp">⬤ {{ inn.powerplay_label }} (over {{ inn.current_over }}){% if inn.fielders_outside_limit is not none %} · max {{ inn.fielders_outside_limit }} out{% endif %}</div>{% endif %}
+          {% if m.dls and m.dls.revised_target %}<div class="sb-row"><span>DLS target</span><b>{{ m.dls.revised_target }}{% if m.dls.revised_overs %} ({{ m.dls.revised_overs }} ov){% endif %}</b></div>
+          {% if m.dls.par is not none %}<div class="sb-row"><span>DLS par</span><b>{{ m.dls.par }}</b></div>{% endif %}{% endif %}
+        </div>
+        {% if m.dls and (m.dls.applied or m.dls.interruptions) %}
+        {% set RL = {'rain':'Rain','bad_light':'Bad light','wet_outfield':'Wet outfield','ground_delay':'Ground delay','power_failure':'Power failure','other':'Interruption'} %}
+        <div class="side-box">
+          <div class="sb-label">☔ Rain / DLS</div>
+          {% if m.dls.abandoned %}<div class="sb-row"><span>Status</span><b>Abandoned</b></div>{% endif %}
+          {% if m.dls.revised_target %}<div class="sb-row"><span>Revised target</span><b>{{ m.dls.revised_target }} · {{ m.dls.revised_overs or m.dls.original_overs }} ov</b></div>{% endif %}
+          {% if m.dls.overs_lost %}<div class="sb-row"><span>Overs lost</span><b>{{ m.dls.overs_lost }}</b></div>{% endif %}
+          {% for it in m.dls.interruptions %}<div class="sb-row"><span>{{ RL.get(it.reason, it.reason) }} · inn {{ it.innings }}</span><b>{% if it.pending %}in progress{% else %}−{{ it.overs_lost }} ov{% endif %}</b></div>{% endfor %}
+          <div class="sb-row"><span>Method</span><b>DLS (Standard)</b></div>
+        </div>
+        {% endif %}
+        <div class="side-box">
+          <div class="sb-label">Match details</div>
+          <div class="sb-row"><span>Format</span><b>{{ m.rules_name }}</b></div>
+          <div class="sb-row"><span>Overs</span><b>{{ inn.max_overs }}</b></div>
+          <div class="sb-row"><span>Squad</span><b>{{ m.rules.players_per_side }}-a-side</b></div>
+          {% if m.rules.powerplays %}<div class="sb-row"><span>Powerplay</span><b>{% for pp in m.rules.powerplays %}{{ pp.start_over }}–{{ pp.end_over }} ({{ pp.max_fielders_outside }} out){% if not loop.last %}, {% endif %}{% endfor %}</b></div>{% endif %}
+          {% if m.rules.over_boundary_out %}<div class="sb-row"><span>Rule-out</span><b>On</b></div>{% endif %}
+          {% if m.rules.super_over_on_tie %}<div class="sb-row"><span>Super over</span><b>On a tie</b></div>{% endif %}
+          {% if m.dls %}<div class="sb-row"><span>DLS</span><b>{% if m.dls.abandoned %}Abandoned{% elif m.dls.revised_target %}Target {{ m.dls.revised_target }}{% if m.dls.revised_overs %} · {{ m.dls.revised_overs }} ov{% endif %}{% else %}Enabled{% endif %}</b></div>{% endif %}
+        </div>
+        <a class="btn btn-primary" href="{{ app_link }}" style="width:100%;justify-content:center">Open in app →</a>
+        <a class="btn btn-ghost" href="/scorecard/{{ m.id }}?print=1" target="_blank" rel="noopener"
+           style="width:100%;justify-content:center" title="Open the printable scorecard and save as PDF">⬇ Download PDF</a>
+      </aside>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}<script src="/site.js?v=2"></script><script src="/live.js?v=1"></script>
+<script src="/js/analytics.js?v=2"></script>
+<script>
+  // Wagon wheel + pitch map on the public scorecard (shared component; graceful-hide).
+  (function () {
+    var SHOTS = {{ shots | tojson }};
+    document.querySelectorAll(".sc-shots").forEach(function (box) {
+      var s = SHOTS[+box.dataset.inn]; if (!s) return;
+      var wagon = s.wagon || [], pitch = s.pitch || [];
+      if (!wagon.length && !pitch.length) return;
+      box.hidden = false;
+      if (window.CricWagon && wagon.length) CricWagon.mount(box.querySelector(".wagon-host"), wagon, { batter: s.striker, maxOvers: s.max_overs });
+      if (window.CricPitch && pitch.length) CricPitch.mount(box.querySelector(".pitch-host"), pitch, { bowler: s.bowler, maxOvers: s.max_overs });
+    });
+  })();
+</script>
+<script>
+  // ?print=1 (from the app's "Download PDF") — jump to the full scorecard and print.
+  (function () {
+    var d = document.getElementById("pfDate");
+    if (d) { try { d.textContent = new Date().toLocaleString(undefined, {dateStyle: "medium", timeStyle: "short"}); } catch (e) { d.textContent = new Date().toDateString(); } }
+    if (new URLSearchParams(location.search).get("print") !== "1") return;
+    document.body.classList.add("printing");
+    var t = document.querySelector('.tab[data-tab="scorecard"]');
+    if (t) t.click();
+    window.addEventListener("load", function () { setTimeout(function () { window.print(); }, 400); });
+  })();
+</script>{% endblock %}
